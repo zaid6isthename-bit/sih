@@ -1,0 +1,234 @@
+{
+  "audit_date": "2026-08-30",
+  "auditor": "opencode",
+  "scope": "All files in privacy_first_browser_agent-main/",
+  "metrics": {
+    "visual_context_accuracy": {
+      "readme_claim": "micro-F1 0.95, R 1.00, mean IoU 0.93",
+      "actual": "F1=0.947, R=1.00, meanIoU=0.931",
+      "scenes": 101,
+      "verdict": "PASS"
+    },
+    "pii_detection": {
+      "readme_claim": "F1 0.99, P 0.99, R 1.00",
+      "actual": "P=0.99, R=1.00, F1=0.99",
+      "samples": 101,
+      "verdict": "PASS"
+    },
+    "redaction_precision": {
+      "readme_claim": "coverage 1.00, boxP 1.00, IoU 0.70, over-red 0.28",
+      "actual": "coverage=1, boxP=1, IoU=0.778, over-red=0.233",
+      "verdict": "PASS"
+    },
+    "client_resource_use": {
+      "readme_claim": "~4700 chars/ms, p50 ~1.4ms, p95 ~2.7ms",
+      "actual": "7871 chars/ms, p50=0.844ms, p95=1.322ms",
+      "verdict": "PASS_BETTER_THAN_CLAIMED"
+    },
+    "end_to_end_latency": {
+      "readme_claim": "server /plan p50 ~16ms",
+      "actual": "SKIPPED_server_down",
+      "verdict": "UNVERIFIED"
+    }
+  },
+  "file_existence": {
+    "claimed_files_present": [
+      "DESIGN.md",
+      "RUNBOOK.md",
+      "REDACTION_VISUAL.md",
+      "extension/manifest.json",
+      "extension/lib/protocol.js",
+      "extension/lib/privacy/pii-regex.js",
+      "extension/lib/privacy/dom-detector.js",
+      "extension/lib/privacy/fusion.js",
+      "extension/lib/privacy/policy.js",
+      "extension/lib/redactor.js",
+      "extension/lib/dom-perception.js",
+      "extension/lib/vision/vision-detector.js",
+      "extension/lib/vision/vision-neural.js",
+      "extension/content/content.js",
+      "extension/background/service-worker.js",
+      "server/schemas.py",
+      "server/security.py",
+      "server/planner.py",
+      "server/vlm_adapter.py",
+      "server/main.py",
+      "server/prompts/system_prompt.txt",
+      "demo/index.html",
+      "demo/redaction-visual.html",
+      "demo/README.md",
+      "eval/run_all.js"
+    ],
+    "claimed_files_missing": [
+      "docs/VENDORING.md",
+      "docs/VISION.md",
+      "tools/vendor-vision.mjs"
+    ],
+    "unlisted_files": [
+      "extension/lib/record-extraction.js",
+      "extension/lib/record-extraction-common.js",
+      "extension/lib/record-extraction-executors.js",
+      "extension/lib/record-extraction-patterns.js",
+      "extension/lib/record-extraction-helpers.js",
+      "extension/lib/record-extraction-tracker.js",
+      "extension/lib/record-extraction-visualizer.js",
+      "extension/sidepanel/sidepanel.html",
+      "extension/sidepanel/sidepanel.js",
+      "extension/sidepanel/sidepanel.css",
+      "extension/popup/popup.html",
+      "extension/popup/popup.js",
+      "extension/offscreen/offscreen.js",
+      "eval/make_dataset.js",
+      "eval/eval_schema.json",
+      "eval/score_visual.js",
+      "eval/score_pii.js",
+      "eval/score_redaction.js",
+      "eval/validate_claims.js"
+    ]
+  },
+  "architecture": {
+    "dom_perception_pii_detection": "IMPLEMENTED",
+    "classical_cv_face_signature": "IMPLEMENTED",
+    "webgpu_compute_shader": "IMPLEMENTED_UNVERIFIED_IN_CHROME",
+    "onnx_yolo_detectors": "CODE_EXISTS_WEIGHTS_NOT_VENDORED",
+    "signal_fusion": "IMPLEMENTED",
+    "policy_engine": "IMPLEMENTED",
+    "redaction_pixel_text": "IMPLEMENTED",
+    "set_of_marks_overlay": "IMPLEMENTED",
+    "action_validation_execution": "IMPLEMENTED",
+    "loop_detection_step_budget": "IMPLEMENTED",
+    "local_secret_vault": "IMPLEMENTED",
+    "server_plan_endpoint": "IMPLEMENTED",
+    "mock_planner_default": "IMPLEMENTED",
+    "vlm_adapter": "IMPLEMENTED",
+    "plan_sanitization": "IMPLEMENTED",
+    "residual_pii_tripwire": "IMPLEMENTED"
+  },
+  "onnx_weights": {
+    "present_in_repo": false,
+    "gitignore_excludes": ["*.onnx"],
+    "vendor_script_exists": false,
+    "models_directory_exists": false,
+    "vendor_directory_exists": false
+  },
+  "extension_entry_points": {
+    "service_worker": { "in_manifest": true, "wired": true },
+    "content_script": { "in_manifest": true, "wired": true },
+    "sidepanel": { "in_manifest": true, "wired": true },
+    "offscreen": { "in_manifest": true, "wired": true },
+    "popup": { "in_manifest": false, "wired": false }
+  },
+  "eval_harness": {
+    "tests_shipped_code": true,
+    "eval_only_reimplementation": false,
+    "nodejs_only": true,
+    "in_browser_runtime_tested": false,
+    "fixtures_synthetic": true
+  },
+  "security_properties": {
+    "fail_closed_privacy": true,
+    "dom_pii_never_sent": true,
+    "screenshot_withheld_when_forbidden": true,
+    "action_allowlist": true,
+    "server_side_sanitization": true,
+    "residual_pii_tripwire": true,
+    "checksum_validation": true,
+    "prompt_injection_defense": "PARTIALLY_IMPLEMENTED",
+    "local_secret_vault": true
+  },
+  "readme_inaccuracies": [
+    {
+      "id": 1,
+      "claim": "popup shows the privacy receipt",
+      "reality": "Popup not wired; sidepanel is actual UI",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": 2,
+      "claim": "popup/ described as privacy-receipt dashboard in layout",
+      "reality": "Popup exists but is orphaned",
+      "severity": "LOW"
+    },
+    {
+      "id": 3,
+      "claim": "docs/VENDORING.md referenced",
+      "reality": "File does not exist",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": 4,
+      "claim": "docs/VISION.md referenced",
+      "reality": "File does not exist",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": 5,
+      "claim": "tools/vendor-vision.mjs referenced",
+      "reality": "File does not exist",
+      "severity": "MEDIUM"
+    },
+    {
+      "id": 6,
+      "claim": "Metric 4: ~4700 chars/ms",
+      "reality": "Actual: 7871 chars/ms (underclaim)",
+      "severity": "LOW"
+    },
+    {
+      "id": 7,
+      "claim": "Metric 5: server /plan p50 ~16ms",
+      "reality": "Not reproduced",
+      "severity": "UNVERIFIED"
+    },
+    {
+      "id": 8,
+      "claim": "yolov8n-face + yolo-signature (vendored)",
+      "reality": "Weights not vendored",
+      "severity": "HIGH"
+    },
+    {
+      "id": 9,
+      "claim": "Repo layout omits sidepanel",
+      "reality": "sidepanel/ not listed",
+      "severity": "LOW"
+    },
+    {
+      "id": 10,
+      "claim": "Repo layout omits record-extraction",
+      "reality": "record-extraction*.js not listed",
+      "severity": "LOW"
+    }
+  ],
+  "overall_assessment": {
+    "fully_working": [
+      "PII detection (regex + checksums)",
+      "Classical CV (face/signature)",
+      "Signal fusion",
+      "Policy engine",
+      "Redaction (pixel + text)",
+      "Action loop (perceive-plan-act-verify)",
+      "Server (mock mode)",
+      "Eval harness"
+    ],
+    "claimed_not_implemented": [
+      "ONNX YOLO weights (no vendoring script or weights)",
+      "WebGPU in production Chrome (unverified)",
+      "VLM integration (requires external endpoint)",
+      "Firefox support (shimmed, not verified)",
+      "docs/VENDORING.md, docs/VISION.md",
+      "tools/vendor-vision.mjs"
+    ],
+    "genuinely_novel": [
+      "DOM-primary / vision-secondary perception with checksum PII",
+      "Fail-closed privacy with residual PII tripwires",
+      "Set-of-Marks element-ID bridge",
+      "Union-biased multi-signal fusion",
+      "Local secret vault"
+    ],
+    "risk_areas_for_sih_judging": [
+      "ONNX vendoring pipeline gap",
+      "Popup vs sidepanel confusion",
+      "Metric 5 unverified",
+      "WebGPU runtime unverified in Chrome"
+    ]
+  }
+}
