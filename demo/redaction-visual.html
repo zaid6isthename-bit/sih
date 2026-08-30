@@ -2,71 +2,71 @@
 <meta name="description" content="A before/after of the on-device privacy filter for browser agents." />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Public+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" />
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" />
 
 <style>
   /* ---------- tokens: complete light palette on bare :root ---------- */
   :root {
-    --paper:      #e9efec;
+    --paper:      #f6f7f9;
     --surface:    #ffffff;
-    --surface-2:  #f4f7f5;
-    --ink:        #11211c;
-    --ink-soft:   #4c5b54;
-    --ink-faint:  #7c8a83;
-    --line:       #d5dfda;
-    --line-soft:  #e4ebe7;
-    --brand:      #0b5c46;
-    --brand-2:    #0e7a5c;
+    --surface-2:  #f0f2f5;
+    --ink:        #1a1d23;
+    --ink-soft:   #5f6577;
+    --ink-faint:  #9198a8;
+    --line:       #e2e5ea;
+    --line-soft:  #eef0f3;
+    --brand:      #2563eb;
+    --brand-2:    #3b82f6;
     --on-brand:   #ffffff;
-    --alert:      #a83a24;
-    --alert-bg:   #f6e6e1;
-    --alert-line: #e0b3a7;
-    --redact:     #14181a;
-    --redact-txt: #6b7a74;
-    --shadow:     0 1px 2px rgba(17,33,28,.05), 0 10px 30px -12px rgba(17,33,28,.18);
-    --shadow-sm:  0 1px 2px rgba(17,33,28,.06);
+    --alert:      #dc2626;
+    --alert-bg:   #fef2f2;
+    --alert-line: #fecaca;
+    --redact:     #1a1d23;
+    --redact-txt: #9198a8;
+    --shadow:     0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+    --shadow-sm:  0 1px 2px rgba(0,0,0,.04);
   }
   /* system-dark (no explicit choice) — redefine ONLY tokens */
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
-      --paper:      #0c1310;
-      --surface:    #14201b;
-      --surface-2:  #0f1814;
-      --ink:        #e7efea;
-      --ink-soft:   #a3b4ab;
-      --ink-faint:  #708078;
-      --line:       #24332c;
-      --line-soft:  #1b2620;
-      --brand:      #47c39d;
-      --brand-2:    #63d3af;
-      --on-brand:   #04231a;
-      --alert:      #e8896e;
-      --alert-bg:   #2a1712;
-      --alert-line: #5a3126;
-      --redact:     #05080a;
-      --redact-txt: #5d6d66;
+      --paper:      #0f1219;
+      --surface:    #181d27;
+      --surface-2:  #141820;
+      --ink:        #e8eaef;
+      --ink-soft:   #9ca3b0;
+      --ink-faint:  #6b7280;
+      --line:       #2a3040;
+      --line-soft:  #1f2530;
+      --brand:      #60a5fa;
+      --brand-2:    #93bbfd;
+      --on-brand:   #0f172a;
+      --alert:      #f87171;
+      --alert-bg:   #2a1518;
+      --alert-line: #7f1d1d;
+      --redact:     #0a0d14;
+      --redact-txt: #6b7280;
       --shadow:     0 1px 2px rgba(0,0,0,.4), 0 14px 34px -14px rgba(0,0,0,.6);
       --shadow-sm:  0 1px 2px rgba(0,0,0,.4);
     }
   }
   /* explicit dark choice — toggle wins either direction */
   :root[data-theme="dark"] {
-    --paper:      #0c1310;
-    --surface:    #14201b;
-    --surface-2:  #0f1814;
-    --ink:        #e7efea;
-    --ink-soft:   #a3b4ab;
-    --ink-faint:  #708078;
-    --line:       #24332c;
-    --line-soft:  #1b2620;
-    --brand:      #47c39d;
-    --brand-2:    #63d3af;
-    --on-brand:   #04231a;
-    --alert:      #e8896e;
-    --alert-bg:   #2a1712;
-    --alert-line: #5a3126;
-    --redact:     #05080a;
-    --redact-txt: #5d6d66;
+    --paper:      #0f1219;
+    --surface:    #181d27;
+    --surface-2:  #141820;
+    --ink:        #e8eaef;
+    --ink-soft:   #9ca3b0;
+    --ink-faint:  #6b7280;
+    --line:       #2a3040;
+    --line-soft:  #1f2530;
+    --brand:      #60a5fa;
+    --brand-2:    #93bbfd;
+    --on-brand:   #0f172a;
+    --alert:      #f87171;
+    --alert-bg:   #2a1518;
+    --alert-line: #7f1d1d;
+    --redact:     #0a0d14;
+    --redact-txt: #6b7280;
     --shadow:     0 1px 2px rgba(0,0,0,.4), 0 14px 34px -14px rgba(0,0,0,.6);
     --shadow-sm:  0 1px 2px rgba(0,0,0,.4);
   }
@@ -77,7 +77,7 @@
     margin: 0;
     background: var(--paper);
     color: var(--ink);
-    font-family: "Public Sans", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    font-family: "Inter", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
     font-size: 17px;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
@@ -85,19 +85,19 @@
   .wrap { max-width: 1120px; margin: 0 auto; padding: 0 24px; }
 
   /* ---------- typography ---------- */
-  h1, h2, h3 { font-family: "Fraunces", Georgia, "Times New Roman", serif; font-weight: 600; line-height: 1.08; text-wrap: balance; margin: 0; }
+  h1, h2, h3 { font-family: "Inter", system-ui, sans-serif; font-weight: 700; line-height: 1.15; text-wrap: balance; margin: 0; letter-spacing: -.02em; }
   .eyebrow {
     font-size: .72rem; font-weight: 700; letter-spacing: .16em; text-transform: uppercase;
     color: var(--brand); margin: 0 0 .6rem;
   }
-  .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
+  .mono { font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; }
 
   /* ---------- top bar ---------- */
   .topbar { display: flex; align-items: center; justify-content: space-between; padding: 20px 0 8px; }
   .brandmark { display: flex; align-items: center; gap: 11px; font-weight: 700; letter-spacing: .01em; }
   .brandmark .glyph {
     width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center;
-    background: var(--brand); color: var(--on-brand); font-family: "Fraunces", serif; font-weight: 700; font-size: 17px;
+    background: var(--brand);     color: var(--on-brand); font-family: "Inter", sans-serif; font-weight: 700; font-size: 17px;
   }
   .theme-btn {
     font: inherit; font-size: .82rem; font-weight: 600; color: var(--ink-soft);
@@ -189,7 +189,7 @@
     border: 1px solid color-mix(in srgb, var(--redact) 60%, var(--line));
   }
   .media .blackout { border-radius: 10px; }
-  .blackout .rtxt { font-family: "IBM Plex Mono", monospace; font-size: .64rem; letter-spacing: .12em; color: var(--redact-txt); text-transform: uppercase; opacity: 0; }
+  .blackout .rtxt { font-family: "JetBrains Mono", monospace; font-size: .64rem; letter-spacing: .12em; color: var(--redact-txt); text-transform: uppercase; opacity: 0; }
   .playing .blackout { transform: scaleX(1); transition: transform .5s cubic-bezier(.22,.61,.36,1); }
   .playing .blackout .rtxt { opacity: 1; transition: opacity .3s ease .38s; }
 
@@ -197,7 +197,7 @@
   .mark {
     position: absolute; top: -9px; left: -9px; z-index: 5; min-width: 20px; height: 20px; padding: 0 5px;
     border-radius: 6px; background: var(--brand); color: var(--on-brand);
-    font-family: "IBM Plex Mono", monospace; font-size: .68rem; font-weight: 600; line-height: 20px; text-align: center;
+    font-family: "JetBrains Mono", monospace; font-size: .68rem; font-weight: 600; line-height: 20px; text-align: center;
     box-shadow: 0 1px 4px rgba(0,0,0,.25); transform: scale(0); transform-origin: center;
   }
   .playing .mark { transform: scale(1); transition: transform .32s cubic-bezier(.34,1.56,.64,1) var(--md, .5s); }
@@ -212,8 +212,8 @@
   /* ---------- pipeline ---------- */
   .pipe { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; }
   .stage { position: relative; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 18px 16px; box-shadow: var(--shadow-sm); }
-  .stage .n { font-family: "IBM Plex Mono", monospace; font-size: .72rem; color: var(--brand); font-weight: 600; }
-  .stage h4 { font-family: "Fraunces", serif; font-weight: 600; font-size: 1.12rem; margin: 6px 0 6px; }
+  .stage .n { font-family: "JetBrains Mono", monospace; font-size: .72rem; color: var(--brand); font-weight: 600; }
+  .stage h4 { font-family: "Inter", sans-serif; font-weight: 700; font-size: 1.12rem; margin: 6px 0 6px; }
   .stage p { margin: 0; font-size: .86rem; color: var(--ink-soft); }
   .stage .arrow { position: absolute; right: -11px; top: 50%; transform: translateY(-50%); color: var(--line); z-index: 2; }
   .stage:last-child .arrow { display: none; }
@@ -222,7 +222,7 @@
   .grid2 { display: grid; grid-template-columns: 1.05fr .95fr; gap: 22px; align-items: start; }
   .receipt {
     background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow);
-    overflow: hidden; font-family: "IBM Plex Mono", monospace;
+    overflow: hidden; font-family: "JetBrains Mono", monospace;
   }
   .receipt .rhead { padding: 14px 18px; border-bottom: 1px dashed var(--line); display: flex; align-items: center; justify-content: space-between; }
   .receipt .rhead .title { font-weight: 600; font-size: .82rem; letter-spacing: .04em; color: var(--ink); }
@@ -240,8 +240,8 @@
   .metrics { display: flex; flex-direction: column; gap: 12px; }
   .metric { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; box-shadow: var(--shadow-sm); display: flex; align-items: baseline; justify-content: space-between; gap: 14px; }
   .metric .lab { font-size: .84rem; color: var(--ink-soft); max-width: 24ch; }
-  .metric .num { font-family: "Fraunces", serif; font-weight: 700; font-size: 1.9rem; color: var(--ink); letter-spacing: -.01em; line-height: 1; }
-  .metric .num small { font-size: .8rem; color: var(--ink-faint); font-family: "IBM Plex Mono", monospace; font-weight: 500; display: block; margin-top: 4px; letter-spacing: 0; }
+  .metric .num { font-family: "Inter", sans-serif; font-weight: 800; font-size: 1.9rem; color: var(--ink); letter-spacing: -.02em; line-height: 1; }
+  .metric .num small { font-size: .8rem; color: var(--ink-faint); font-family: "JetBrains Mono", monospace; font-weight: 500; display: block; margin-top: 4px; letter-spacing: 0; }
 
   .note { font-size: .82rem; color: var(--ink-faint); margin-top: 14px; max-width: 70ch; }
   footer { border-top: 1px solid var(--line); margin-top: 20px; padding: 22px 0 40px; color: var(--ink-faint); font-size: .82rem; }
@@ -387,8 +387,8 @@
 
 <footer>
   <div class="wrap">
-    <span>Privacy Browser Agent · the browser is the gatekeeper.</span>
-    <span class="mono">detect → fuse → decide → redact</span>
+    <span>Privacy Browser Agent - the browser is the gatekeeper.</span>
+    <span class="mono">detect -> fuse -> decide -> redact</span>
   </div>
 </footer>
 
