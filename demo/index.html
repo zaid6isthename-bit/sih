@@ -905,7 +905,6 @@
       <div class="actions">
         <button id="submitBtn" class="primary" type="button">Submit Application</button>
         <button id="payBtn" class="danger-btn" type="button">Pay Fee & Transfer ₹1,000</button>
-        <button id="resetBtn" class="ghost" type="button" onclick="fillSampleData()">Fill Sample Data</button>
         <span id="status" role="status"></span>
       </div>
       <p style="font-size: 11px; color: var(--ink-faint); margin-top: 10px;">
@@ -1099,23 +1098,6 @@
       img.src = ev.target.result;
     };
     r.readAsDataURL(f);
-  }
-
-  function fillSampleData() {
-    document.getElementById('name').value = 'Zaid Mohammed';
-    document.getElementById('email').value = 'zaid@gmail.com';
-    document.getElementById('phone').value = '9643983876';
-    document.getElementById('dob').value = '2006-12-29';
-    document.getElementById('addr').value = 'Aurous, 501, 5th floor, sector 8, Koparkhairane, Navi Mumbai, Maharashtra, 400709';
-    document.getElementById('aadhaar').value = '';
-    document.getElementById('pan').value = '';
-    document.getElementById('passport').value = '';
-    document.getElementById('account').value = '';
-    document.getElementById('ifsc').value = '';
-    document.getElementById('upi').value = '';
-    document.getElementById('card').value = '';
-    document.getElementById('otp').value = '';
-    document.getElementById('pw').value = '';
   }
 
   const status = document.getElementById('status');
