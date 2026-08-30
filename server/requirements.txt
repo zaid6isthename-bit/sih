@@ -1,0 +1,6 @@
+# Legacy mirror of pyproject.toml — only for environments without uv.
+# Source of truth: server/pyproject.toml (uv sync restores exactly from uv.lock).
+fastapi>=0.110
+uvicorn[standard]>=0.29
+pydantic>=2.6
+# dev/selftest: httpx>=0.27

@@ -1,0 +1,105 @@
+"""
+planner.py — Turns a sanitized context into a next-step ActionPlan.
+
+Backends, selected by env var PBA_BACKEND:
+  - "mock" (default): a deterministic heuristic planner. Requires no GPU/model,
+    so the whole end-to-end loop runs on any laptop for demos and CI.
+  - "vlm": the ROUTED chain of OpenAI-compatible endpoints (router.py) —
+    e.g. OpenRouter UI-TARS-1.5-7B first, local vLLM second — with automatic
+    failover, and the mock planner as final safety net.
+  - "auto": alias of "vlm" (kept explicit in docs/ops tooling).
+
+Whatever any backend proposes is passed through security.sanitize_plan() by the
+caller, so planners are allowed to be optimistic.
+"""
+from __future__ import annotations
+import os
+from schemas import SanitizedContext, ActionPlan, Action
+
+BACKEND = os.environ.get("PBA_BACKEND", "mock").lower()
+if BACKEND == "auto":
+    BACKEND = "vlm"
+
+# task-intent -> vault key used by fill_local (value resolved on the CLIENT)
+_PII_TO_SOURCE = {
+    "email": "email", "phone": "phone", "person": "full_name",
+    "dob": "dob", "address": "address",
+    "aadhaar": "aadhaar", "pan": "pan",
+    "bank_account": "bank_account", "credit_card": "bank_account",
+    "upi": "upi",
+}
+
+def _vault_key_for(element):
+    """Pick the right vault key for a person field based on its label."""
+    if element.pii_type != "person":
+        return _PII_TO_SOURCE.get(element.pii_type)
+    label = (element.label or "").lower()
+    if "first" in label:
+        return "first_name"
+    if "last" in label or "family" in label or "surname" in label:
+        return "last_name"
+    return _PII_TO_SOURCE.get(element.pii_type)
+_PRIMARY_BTN_WORDS = ["submit", "continue", "next", "proceed", "login", "sign in",
+                      "search", "send", "save", "apply", "confirm", "ok"]
+
+
+def _mock_plan(ctx: SanitizedContext) -> ActionPlan:
+    task = (ctx.task or "").lower()
+
+    # 1. Fill the first empty sensitive field we can source locally.
+    for e in ctx.elements:
+        vault_key = _vault_key_for(e)
+        if e.sensitive and e.value_state == "empty" and vault_key:
+            return ActionPlan(
+                session_id=ctx.session_id, step=ctx.step,
+                reasoning=f"Fill the empty {e.pii_type} field from the local vault.",
+                actions=[Action(type="fill_local", target_id=e.id, source=vault_key)],
+                status="continue", confidence=0.7,
+            )
+
+    # 2. Click the most relevant primary button (prefer labels matching the task).
+    buttons = [e for e in ctx.elements if e.role == "button" and e.enabled]
+    def score(e):
+        lab = (e.label or "").lower()
+        s = sum(w in lab for w in _PRIMARY_BTN_WORDS)
+        s += 2 * sum(tok in lab for tok in task.split() if len(tok) > 3)
+        return s
+    buttons.sort(key=score, reverse=True)
+    if buttons and score(buttons[0]) > 0:
+        b = buttons[0]
+        return ActionPlan(
+            session_id=ctx.session_id, step=ctx.step,
+            reasoning=f"Click the '{b.label[:40]}' control to advance the task.",
+            actions=[Action(type="click", target_id=b.id)],
+            status="continue", confidence=0.6,
+        )
+
+    # 3. Nothing obvious above the fold — scroll to reveal more, once.
+    if ctx.viewport and ctx.step <= 2:
+        return ActionPlan(
+            session_id=ctx.session_id, step=ctx.step,
+            reasoning="No actionable control in view; scroll down to reveal more.",
+            actions=[Action(type="scroll", direction="down")],
+            status="continue", confidence=0.4,
+        )
+
+    # 4. Give up gracefully.
+    return ActionPlan(
+        session_id=ctx.session_id, step=ctx.step,
+        reasoning="No further safe action identified; task appears complete or blocked.",
+        actions=[], status="done", confidence=0.5,
+    )
+
+
+def plan(ctx: SanitizedContext) -> ActionPlan:
+    if BACKEND == "vlm":
+        from router import plan_with_fallback  # lazy so mock mode needs no deps
+        try:
+            p, used = plan_with_fallback(ctx)
+            p.reasoning = f"[{used}] {p.reasoning}".strip()
+            return p
+        except Exception as e:  # fail safe -> heuristic, never crash the loop
+            p = _mock_plan(ctx)
+            p.reasoning = f"[vlm fallback: {e}] " + p.reasoning
+            return p
+    return _mock_plan(ctx)
