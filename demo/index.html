@@ -460,6 +460,9 @@
   .cat-tra { background: #d6eaf8; color: #1b4f72; }
   .cat-sal { background: #d5f5e3; color: #1e8449; }
   .cat-hlt { background: #fadbd8; color: #922b21; }
+  .cat-sch { background: #d5f5e3; color: #1e8449; }
+  .cat-book { background: #d6eaf8; color: #1b4f72; }
+  .cat-hostel { background: #fce4ec; color: #880e4f; }
 
   /* ── Account Summary ── */
   .acct-row {
@@ -684,10 +687,10 @@
     <div class="label">Quick Actions — Try in the Browser Agent</div>
     <div class="task-chips">
       <span class="task-chip">Fill in my email and phone number and submit the application</span>
-      <span class="task-chip">Summarize my spending by category</span>
-      <span class="task-chip">What is my total grocery spend?</span>
-      <span class="task-chip">Calculate my net monthly savings</span>
-      <span class="task-chip">Pay Fee & Transfer 1,000</span>
+      <span class="task-chip">How many scholarship installments have been credited?</span>
+      <span class="task-chip">What is the total pending disbursement amount?</span>
+      <span class="task-chip">Summarize all sanctioned schemes and their amounts</span>
+      <span class="task-chip">Submit Application</span>
     </div>
   </div>
 
@@ -748,23 +751,23 @@
       <div class="grid-2">
         <div class="field">
           <label for="name">Full Name (as per Aadhaar) <span class="req">*</span></label>
-          <input id="name" name="full_name" autocomplete="name" placeholder="Enter full name" value="Zaid Mohammed" />
+          <input id="name" name="full_name" autocomplete="name" placeholder="Enter full name" />
         </div>
         <div class="field">
           <label for="email">Email Address <span class="req">*</span></label>
-          <input id="email" name="email" type="email" autocomplete="email" placeholder="Enter email" value="zaid@gmail.com" />
+          <input id="email" name="email" type="email" autocomplete="email" placeholder="Enter email" />
         </div>
         <div class="field">
           <label for="phone">Mobile Number <span class="req">*</span></label>
-          <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="10-digit mobile number" value="6726883528" />
+          <input id="phone" name="phone" type="tel" autocomplete="tel" placeholder="10-digit mobile number" />
         </div>
         <div class="field">
           <label for="dob">Date of Birth <span class="req">*</span></label>
-          <input id="dob" name="dob" type="date" autocomplete="bday" value="2006-12-29" />
+          <input id="dob" name="dob" type="date" autocomplete="bday" />
         </div>
         <div class="field full">
           <label for="addr">Residential Address <span class="req">*</span></label>
-          <textarea id="addr" name="street-address" autocomplete="street-address" rows="2" placeholder="Enter complete address with PIN code">Koparkhairane, Navi Mumbai, Maharashtra</textarea>
+          <textarea id="addr" name="street-address" autocomplete="street-address" rows="2" placeholder="Enter complete address with PIN code"></textarea>
         </div>
       </div>
     </div>
@@ -780,68 +783,68 @@
       <div class="grid-3">
         <div class="field">
           <label for="aadhaar">Aadhaar Number <span class="req">*</span></label>
-          <input id="aadhaar" name="aadhaar" inputmode="numeric" placeholder="12-digit Aadhaar" value="3456 7890 1238" />
+          <input id="aadhaar" name="aadhaar" inputmode="numeric" placeholder="12-digit Aadhaar" />
         </div>
         <div class="field">
           <label for="pan">PAN <span class="req">*</span></label>
-          <input id="pan" name="pan" placeholder="ABCDE1234F" value="ABCPK7392Q" style="text-transform:uppercase;" />
+          <input id="pan" name="pan" placeholder="ABCDE1234F" style="text-transform:uppercase;" />
         </div>
         <div class="field">
           <label for="passport">Passport Number</label>
-          <input id="passport" name="passport" placeholder="A1234567" value="Z9876543" style="text-transform:uppercase;" />
+          <input id="passport" name="passport" placeholder="A1234567" style="text-transform:uppercase;" />
         </div>
         <div class="field">
           <label for="account">Bank Account Number <span class="req">*</span></label>
-          <input id="account" name="account" inputmode="numeric" placeholder="Account number" value="50100432981245" />
+          <input id="account" name="account" inputmode="numeric" placeholder="Account number" />
         </div>
         <div class="field">
           <label for="ifsc">IFSC Code <span class="req">*</span></label>
-          <input id="ifsc" name="ifsc" placeholder="ABCD0123456" value="HDFC0001234" style="text-transform:uppercase;" />
+          <input id="ifsc" name="ifsc" placeholder="ABCD0123456" style="text-transform:uppercase;" />
         </div>
         <div class="field">
           <label for="upi">UPI VPA</label>
-          <input id="upi" name="upi" placeholder="name@bank" value="ravi@okhdfc" />
+          <input id="upi" name="upi" placeholder="name@bank" />
         </div>
         <div class="field">
           <label for="card">Debit / Credit Card</label>
-          <input id="card" name="card" autocomplete="cc-number" inputmode="numeric" placeholder="16-digit card number" value="4556 1234 5678 9015" />
+          <input id="card" name="card" autocomplete="cc-number" inputmode="numeric" placeholder="16-digit card number" />
         </div>
         <div class="field">
           <label for="otp">OTP Received</label>
-          <input id="otp" name="otp" autocomplete="one-time-code" inputmode="numeric" placeholder="6-digit OTP" value="482913" />
+          <input id="otp" name="otp" autocomplete="one-time-code" inputmode="numeric" placeholder="6-digit OTP" />
         </div>
         <div class="field">
           <label for="pw">Portal Password <span class="req">*</span></label>
-          <input id="pw" name="password" type="password" autocomplete="current-password" placeholder="Min 8 characters" value="SecretPass#2026" />
+          <input id="pw" name="password" type="password" autocomplete="current-password" placeholder="Min 8 characters" />
         </div>
       </div>
     </div>
     <div class="box-note">Aadhaar and PAN will be verified via UIDAI/NSDL APIs. Bank details are used for direct benefit transfer (DBT).</div>
   </div>
 
-  <!-- 4. BANK STATEMENT -->
+  <!-- 4. SCHOLARSHIP DISBURSEMENT LEDGER -->
   <div class="section-box">
     <div class="box-header">
-      <h2>Section 4 — Bank Account Statement</h2>
+      <h2>Section 4 — Scholarship Disbursement Ledger</h2>
       <span class="tag">Tabular Query Target</span>
     </div>
     <div class="box-body">
       <div class="acct-row">
         <div class="acct-box">
-          <dt>Account</dt>
-          <dd>HDFC 1245</dd>
+          <dt>Application ID</dt>
+          <dd>SSY-2026-84729</dd>
         </div>
         <div class="acct-box in">
-          <dt>Credits</dt>
-          <dd>+89,500</dd>
+          <dt>Total Sanctioned</dt>
+          <dd>₹1,25,000</dd>
         </div>
         <div class="acct-box out">
-          <dt>Debits</dt>
-          <dd>-22,928</dd>
+          <dt>Installments Paid</dt>
+          <dd>₹75,000</dd>
         </div>
         <div class="acct-box bal">
-          <dt>Balance</dt>
-          <dd>1,08,751</dd>
+          <dt>Pending</dt>
+          <dd>₹50,000</dd>
         </div>
       </div>
 
@@ -849,34 +852,26 @@
         <table class="stmt" id="txns">
           <thead>
             <tr>
-              <th>Date</th>
-              <th>Category</th>
-              <th>Description</th>
-              <th>Ref ID</th>
+              <th>Disbursement Date</th>
+              <th>Scheme</th>
+              <th>Installment</th>
+              <th>Status</th>
               <th style="text-align:right;">Amount (₹)</th>
-              <th>Account</th>
+              <th>Bank Ref</th>
             </tr>
           </thead>
           <tbody>
-            <tr><td>03/01/2026</td><td><span class="badge-cat cat-gro">Groceries</span></td><td>BigBazaar Supercentre</td><td>TXN984021</td><td class="amt debit">-2,340</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>05/01/2026</td><td><span class="badge-cat cat-din">Dining</span></td><td>Cafe Coffee Day</td><td>TXN984055</td><td class="amt debit">-560</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>07/01/2026</td><td><span class="badge-cat cat-tra">Transport</span></td><td>Uber India Rides</td><td>TXN984092</td><td class="amt debit">-430</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>09/01/2026</td><td><span class="badge-cat cat-shp">Shopping</span></td><td>Amazon India Retail</td><td>TXN984120</td><td class="amt debit">-3,199</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>11/01/2026</td><td><span class="badge-cat cat-uti">Utilities</span></td><td>BESCOM Electricity Bill</td><td>TXN984180</td><td class="amt debit">-1,875</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>13/01/2026</td><td><span class="badge-cat cat-gro">Groceries</span></td><td>More Retail Supermarket</td><td>TXN984210</td><td class="amt debit">-1,120</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>15/01/2026</td><td><span class="badge-cat cat-sal">Salary</span></td><td>Acme Tech Corp — Salary</td><td>TXN984300</td><td class="amt credit">+85,000</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>17/01/2026</td><td><span class="badge-cat cat-din">Dining</span></td><td>Truffles Burgers</td><td>TXN984350</td><td class="amt debit">-1,240</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>19/01/2026</td><td><span class="badge-cat cat-tra">Transport</span></td><td>IndianOil Fuel Station</td><td>TXN984390</td><td class="amt debit">-2,000</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>21/01/2026</td><td><span class="badge-cat cat-shp">Shopping</span></td><td>Refund to card 4111 1111 1111 1111</td><td>TXN984420</td><td class="amt credit">+4,500</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>23/01/2026</td><td><span class="badge-cat cat-hlt">Healthcare</span></td><td>Apollo Pharmacy</td><td>TXN984480</td><td class="amt debit">-1,845</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>24/01/2026</td><td><span class="badge-cat cat-uti">Utilities</span></td><td>Airtel Fiber Broadband</td><td>TXN984510</td><td class="amt debit">-999</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>27/01/2026</td><td><span class="badge-cat cat-din">Dining</span></td><td>Swiggy Food Delivery</td><td>TXN984570</td><td class="amt debit">-780</td><td class="acctno">50100432981245</td></tr>
-            <tr><td>28/01/2026</td><td><span class="badge-cat cat-gro">Groceries</span></td><td>DMart Ready</td><td>TXN984620</td><td class="amt debit">-1,860</td><td class="acctno">50100432981245</td></tr>
+            <tr><td>15/07/2025</td><td><span class="badge-cat cat-sal">Merit Scholarship</span></td><td>1st Installment</td><td style="color:var(--green);font-weight:600;">Credited</td><td class="amt credit">+25,000</td><td class="acctno">NEFT/2025/HDFC/881204</td></tr>
+            <tr><td>15/09/2025</td><td><span class="badge-cat cat-sal">Merit Scholarship</span></td><td>2nd Installment</td><td style="color:var(--green);font-weight:600;">Credited</td><td class="amt credit">+25,000</td><td class="acctno">NEFT/2025/HDFC/993417</td></tr>
+            <tr><td>15/11/2025</td><td><span class="badge-cat cat-sal">Merit Scholarship</span></td><td>3rd Installment</td><td style="color:var(--green);font-weight:600;">Credited</td><td class="amt credit">+25,000</td><td class="acctno">NEFT/2025/HDFC/102948</td></tr>
+            <tr><td>15/01/2026</td><td><span class="badge-cat cat-uti">Book & Equipment Grant</span></td><td>Annual Grant</td><td style="color:#cc0000;font-weight:600;">Pending</td><td class="amt" style="color:#cc0000;">10,000</td><td class="acctno">—</td></tr>
+            <tr><td>15/03/2026</td><td><span class="badge-cat cat-sal">Merit Scholarship</span></td><td>4th Installment</td><td style="color:#cc0000;font-weight:600;">Pending</td><td class="amt" style="color:#cc0000;">25,000</td><td class="acctno">—</td></tr>
+            <tr><td>15/05/2026</td><td><span class="badge-cat cat-hlt">Hostel Maintenance Allowance</span></td><td>Semester Allowance</td><td style="color:#cc0000;font-weight:600;">Pending</td><td class="amt" style="color:#cc0000;">15,000</td><td class="acctno">—</td></tr>
           </tbody>
         </table>
       </div>
     </div>
-    <div class="box-note">Statement period: 01 Jan 2026 to 31 Jan 2026. Account number is tokenized on-device before any server query.</div>
+    <div class="box-note">Disbursements are made via NEFT to the Aadhaar-linked bank account on file. Pending installments require semester verification by the institution.</div>
   </div>
 
   <!-- 5. DOCUMENT SUMMARY -->
@@ -887,14 +882,14 @@
     </div>
     <div class="box-body">
       <dl class="review-grid">
-        <div><dt>Aadhaar (UIDAI Verified)</dt><dd>3456 7890 1238</dd></div>
-        <div><dt>Income Tax PAN</dt><dd>ABCPK7392Q</dd></div>
-        <div><dt>Debit / Credit Card</dt><dd>4556 1234 5678 9015</dd></div>
-        <div><dt>Registered Email</dt><dd>zaid@gmail.com</dd></div>
-        <div><dt>Verified Mobile</dt><dd>6726883528</dd></div>
-        <div><dt>UPI Handle</dt><dd>ravi@okhdfc</dd></div>
-        <div><dt>Last OTP</dt><dd>482913</dd></div>
-        <div><dt>Client IP</dt><dd>10.0.0.1</dd></div>
+        <div><dt>Aadhaar (UIDAI Verified)</dt><dd>—</dd></div>
+        <div><dt>Income Tax PAN</dt><dd>—</dd></div>
+        <div><dt>Debit / Credit Card</dt><dd>—</dd></div>
+        <div><dt>Registered Email</dt><dd>—</dd></div>
+        <div><dt>Verified Mobile</dt><dd>—</dd></div>
+        <div><dt>UPI Handle</dt><dd>—</dd></div>
+        <div><dt>Last OTP</dt><dd>—</dd></div>
+        <div><dt>Client IP</dt><dd>—</dd></div>
       </dl>
     </div>
     <div class="box-note">These values appear as plain text. The screenshot redaction layer must detect and mask all PII before transmission.</div>
@@ -910,7 +905,7 @@
       <div class="actions">
         <button id="submitBtn" class="primary" type="button">Submit Application</button>
         <button id="payBtn" class="danger-btn" type="button">Pay Fee & Transfer ₹1,000</button>
-        <button id="resetBtn" class="ghost" type="button" onclick="fillSampleData()">Fill Sample Data</button>
+        <button id="resetBtn" class="ghost" type="button" onclick="fillSampleData()">Clear All Fields</button>
         <span id="status" role="status"></span>
       </div>
       <p style="font-size: 11px; color: var(--ink-faint); margin-top: 10px;">
@@ -1107,10 +1102,20 @@
   }
 
   function fillSampleData() {
-    document.getElementById('name').value = 'Zaid Mohammed';
-    document.getElementById('email').value = 'zaid@gmail.com';
-    document.getElementById('phone').value = '6726883528';
-    document.getElementById('addr').value = 'Koparkhairane, Navi Mumbai, Maharashtra';
+    document.getElementById('name').value = '';
+    document.getElementById('email').value = '';
+    document.getElementById('phone').value = '';
+    document.getElementById('addr').value = '';
+    document.getElementById('dob').value = '';
+    document.getElementById('aadhaar').value = '';
+    document.getElementById('pan').value = '';
+    document.getElementById('passport').value = '';
+    document.getElementById('account').value = '';
+    document.getElementById('ifsc').value = '';
+    document.getElementById('upi').value = '';
+    document.getElementById('card').value = '';
+    document.getElementById('otp').value = '';
+    document.getElementById('pw').value = '';
   }
 
   const status = document.getElementById('status');
