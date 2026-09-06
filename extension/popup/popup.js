@@ -105,6 +105,8 @@ ext.runtime.onMessage.addListener((msg) => { if (msg.cmd === "STATE") renderStat
 
 (async () => {
   const { serverUrl } = await ext.storage.local.get("serverUrl");
-  $("serverUrl").value = serverUrl || "http://localhost:8000";
+  const correct = "http://localhost:8000";
+  if (serverUrl !== correct) await ext.storage.local.set({ serverUrl: correct });
+  $("serverUrl").value = correct;
   ext.runtime.sendMessage({ cmd: "GET_STATE" }, (res) => res && res.ok && renderState(res.state));
 })();

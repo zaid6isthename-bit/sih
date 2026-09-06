@@ -512,6 +512,11 @@
     border-color: var(--navy);
   }
   button.primary:hover { background: var(--navy-dark); }
+  button.primary:disabled {
+    background: #888;
+    border-color: #888;
+    cursor: not-allowed;
+  }
   button.ghost {
     background: #f0f0f0;
     border-color: #aaa;
@@ -525,12 +530,102 @@
     font-weight: 700;
   }
   button.danger-btn:hover { background: #fff5f5; }
+  button.danger-btn:disabled {
+    background: #f5f5f5;
+    border-color: #ccc;
+    color: #999;
+    cursor: not-allowed;
+  }
   #status {
     font-size: 12px;
     font-weight: 700;
     color: var(--green);
     min-height: 18px;
   }
+  #status.error { color: #cc0000; }
+  #status.pending { color: #cc0000; }
+  #status.paid { color: var(--green); }
+
+  /* ── Payment Confirmation Modal ── */
+  .payment-modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+  }
+  .payment-modal-overlay[hidden] { display: none; }
+  .payment-modal {
+    background: #fff;
+    border: 2px solid var(--navy);
+    max-width: 440px;
+    width: 90%;
+    padding: 0;
+    box-shadow: 0 8px 32px rgba(0,0,0,.25);
+  }
+  .payment-modal .pm-header {
+    background: var(--navy);
+    color: #fff;
+    padding: 12px 20px;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .payment-modal .pm-body {
+    padding: 20px;
+  }
+  .payment-modal .pm-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    font-size: 13px;
+    border-bottom: 1px solid #eee;
+  }
+  .payment-modal .pm-row:last-child { border-bottom: none; }
+  .payment-modal .pm-label { color: var(--ink-faint); }
+  .payment-modal .pm-value { font-weight: 600; color: var(--ink); }
+  .payment-modal .pm-value.amount { font-size: 18px; color: var(--navy); font-family: 'Courier New', monospace; }
+  .payment-modal .pm-footer {
+    padding: 12px 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    border-top: 1px solid #eee;
+    background: #f8f9fa;
+  }
+  .payment-modal .pm-footer button {
+    padding: 8px 24px;
+    font-size: 13px;
+  }
+  .payment-modal .pm-confirm {
+    background: var(--navy);
+    color: #fff;
+    border-color: var(--navy);
+  }
+  .payment-modal .pm-cancel {
+    background: #f0f0f0;
+    border-color: #aaa;
+    color: var(--ink);
+  }
+
+  /* ── Application State Badge ── */
+  .state-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+  .state-badge.draft { background: #fff3cd; color: #856404; }
+  .state-badge.submitted { background: #d4edda; color: #155724; }
+  .state-badge.paid { background: #d1ecf1; color: #0c5460; }
+  .state-badge.pending { background: #f8d7da; color: #721c24; }
 
   /* ── Footer ── */
   .gov-footer {
@@ -902,9 +997,23 @@
       <span class="tag">Agent Action Target</span>
     </div>
     <div class="box-body">
+      <div style="display:flex;gap:16px;align-items:center;margin-bottom:12px;flex-wrap:wrap;">
+        <div>
+          <span style="font-size:11px;color:var(--ink-faint);">Application Status</span><br/>
+          <span id="appStatusBadge" class="state-badge draft" data-field="applicationStatus">DRAFT</span>
+        </div>
+        <div>
+          <span style="font-size:11px;color:var(--ink-faint);">Payment Status</span><br/>
+          <span id="payStatusBadge" class="state-badge pending" data-field="paymentStatus">PENDING</span>
+        </div>
+        <div>
+          <span style="font-size:11px;color:var(--ink-faint);">Application Fee</span><br/>
+          <span style="font-size:16px;font-weight:700;font-family:'Courier New',monospace;" data-field="feeAmount">₹500</span>
+        </div>
+      </div>
       <div class="actions">
         <button id="submitBtn" class="primary" type="button">Submit Application</button>
-        <button id="payBtn" class="danger-btn" type="button">Pay Fee & Transfer ₹1,000</button>
+        <button id="payBtn" class="danger-btn" type="button">Pay Fee ₹500</button>
         <span id="status" role="status"></span>
       </div>
       <p style="font-size: 11px; color: var(--ink-faint); margin-top: 10px;">
@@ -959,7 +1068,237 @@
   </div>
 </footer>
 
+<!-- Payment Confirmation Modal -->
+<div id="paymentModal" class="payment-modal-overlay" hidden>
+  <div class="payment-modal">
+    <div class="pm-header">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      Confirm Payment
+    </div>
+    <div class="pm-body">
+      <div class="pm-row">
+        <span class="pm-label">Application</span>
+        <span class="pm-value" id="pmAppId">SSY-2026-84729</span>
+      </div>
+      <div class="pm-row">
+        <span class="pm-label">Scheme</span>
+        <span class="pm-value">Seva Scholarship Yojana 2026</span>
+      </div>
+      <div class="pm-row">
+        <span class="pm-label">Fee Type</span>
+        <span class="pm-value">Application Processing Fee</span>
+      </div>
+      <div class="pm-row">
+        <span class="pm-label">Amount</span>
+        <span class="pm-value amount" id="pmAmount">₹500</span>
+      </div>
+      <div class="pm-row">
+        <span class="pm-label">Payment Method</span>
+        <span class="pm-value">UPI (Local Demo)</span>
+      </div>
+    </div>
+    <div class="pm-footer">
+      <button id="pmCancel" class="pm-cancel" type="button">Cancel</button>
+      <button id="pmConfirm" class="pm-confirm" type="button">Confirm Payment</button>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden app state for extension post-condition verification -->
+<div id="appState" style="display:none;" data-json='{"applicationStatus":"DRAFT","paymentStatus":"PENDING","feeAmount":500,"applicationId":"SSY-2026-84729"}'></div>
+
 <script>
+  // ============================================================
+  // APPLICATION STATE MACHINE — REAL, NOT MOCK
+  // ============================================================
+  const AppState = {
+    applicationStatus: "DRAFT",   // DRAFT → SUBMITTING → SUBMITTED
+    paymentStatus: "PENDING",     // PENDING → PAYMENT_STARTED → PAYMENT_CONFIRMATION → PAID
+    feeAmount: 500,
+    applicationId: "SSY-2026-84729",
+    submittedAt: null,
+    paidAt: null,
+    paymentTransactionId: null
+  };
+
+  function syncAppStateToDOM() {
+    const el = document.getElementById('appState');
+    if (el) el.setAttribute('data-json', JSON.stringify(AppState));
+
+    const appBadge = document.getElementById('appStatusBadge');
+    const payBadge = document.getElementById('payStatusBadge');
+    if (appBadge) {
+      appBadge.textContent = AppState.applicationStatus;
+      appBadge.className = 'state-badge ' + AppState.applicationStatus.toLowerCase();
+    }
+    if (payBadge) {
+      payBadge.textContent = AppState.paymentStatus;
+      payBadge.className = 'state-badge ' + (
+        AppState.paymentStatus === 'PAID' ? 'paid' :
+        AppState.paymentStatus === 'PENDING' ? 'pending' : 'draft'
+      );
+    }
+
+    // Dispatch custom events for extension post-condition verification
+    document.dispatchEvent(new CustomEvent('app:stateChange', { detail: { ...AppState } }));
+  }
+
+  function generateTransactionId() {
+    const ts = Date.now().toString(36).toUpperCase();
+    const rand = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return 'TXN/' + new Date().getFullYear() + '/DEMO/' + ts + '-' + rand;
+  }
+
+  // ============================================================
+  // FORM VALIDATION
+  // ============================================================
+  const REQUIRED_FIELDS = ['name', 'email', 'phone', 'aadhaar', 'pan'];
+  const REQUIRED_LABELS = {
+    name: 'Full Name', email: 'Email', phone: 'Mobile Number',
+    aadhaar: 'Aadhaar Number', pan: 'PAN'
+  };
+
+  function validateForm() {
+    const missing = [];
+    for (const fieldId of REQUIRED_FIELDS) {
+      const el = document.getElementById(fieldId);
+      if (!el || !el.value.trim()) {
+        missing.push(REQUIRED_LABELS[fieldId] || fieldId);
+      }
+    }
+    return { valid: missing.length === 0, missing };
+  }
+
+  function readFormField(fieldId) {
+    const el = document.getElementById(fieldId);
+    return el ? el.value.trim() : '';
+  }
+
+  function readFormState() {
+    return {
+      name: readFormField('name'),
+      email: readFormField('email'),
+      phone: readFormField('phone'),
+      dob: readFormField('dob'),
+      addr: readFormField('addr'),
+      aadhaar: readFormField('aadhaar'),
+      pan: readFormField('pan'),
+      passport: readFormField('passport'),
+      account: readFormField('account'),
+      ifsc: readFormField('ifsc'),
+      upi: readFormField('upi'),
+      card: readFormField('card'),
+      otp: readFormField('otp'),
+      pw: readFormField('pw')
+    };
+  }
+
+  // ============================================================
+  // SUBMIT APPLICATION — REAL STATE TRANSITION
+  // ============================================================
+  const statusEl = document.getElementById('status');
+  const submitBtn = document.getElementById('submitBtn');
+  const payBtn = document.getElementById('payBtn');
+
+  submitBtn.addEventListener('click', () => {
+    if (AppState.applicationStatus !== 'DRAFT') {
+      statusEl.textContent = 'Application already ' + AppState.applicationStatus.toLowerCase() + '.';
+      statusEl.className = 'error';
+      return;
+    }
+
+    const validation = validateForm();
+    if (!validation.valid) {
+      statusEl.textContent = 'Cannot submit: missing ' + validation.missing.join(', ');
+      statusEl.className = 'error';
+      return;
+    }
+
+    AppState.applicationStatus = 'SUBMITTING';
+    statusEl.textContent = 'Submitting application...';
+    statusEl.className = 'pending';
+    submitBtn.disabled = true;
+    syncAppStateToDOM();
+
+    // Simulate network delay (realistic)
+    setTimeout(() => {
+      AppState.applicationStatus = 'SUBMITTED';
+      AppState.submittedAt = new Date().toISOString();
+      statusEl.textContent = 'Application successfully submitted! Ref: ' + AppState.applicationId + ' at ' + new Date().toLocaleTimeString();
+      statusEl.className = '';
+      submitBtn.disabled = true;
+      payBtn.disabled = false;
+      syncAppStateToDOM();
+      document.dispatchEvent(new CustomEvent('app:submitted', { detail: { ...AppState } }));
+    }, 800);
+  });
+
+  // ============================================================
+  // PAY FEE — REAL STATE TRANSITION WITH CONFIRMATION
+  // ============================================================
+  const paymentModal = document.getElementById('paymentModal');
+  const pmConfirm = document.getElementById('pmConfirm');
+  const pmCancel = document.getElementById('pmCancel');
+
+  payBtn.addEventListener('click', () => {
+    if (AppState.paymentStatus === 'PAID') {
+      statusEl.textContent = 'Fee already paid. Transaction: ' + AppState.paymentTransactionId;
+      statusEl.className = 'paid';
+      return;
+    }
+    if (AppState.applicationStatus !== 'SUBMITTED') {
+      statusEl.textContent = 'Please submit the application before paying the fee.';
+      statusEl.className = 'error';
+      return;
+    }
+
+    AppState.paymentStatus = 'PAYMENT_STARTED';
+    syncAppStateToDOM();
+
+    // Show real confirmation modal
+    document.getElementById('pmAppId').textContent = AppState.applicationId;
+    document.getElementById('pmAmount').textContent = '₹' + AppState.feeAmount;
+    paymentModal.hidden = false;
+  });
+
+  pmConfirm.addEventListener('click', () => {
+    paymentModal.hidden = true;
+    AppState.paymentStatus = 'PAYMENT_CONFIRMATION';
+    statusEl.textContent = 'Processing payment...';
+    statusEl.className = 'pending';
+    payBtn.disabled = true;
+    syncAppStateToDOM();
+
+    // Simulate payment processing
+    setTimeout(() => {
+      AppState.paymentStatus = 'PAID';
+      AppState.paidAt = new Date().toISOString();
+      AppState.paymentTransactionId = generateTransactionId();
+      statusEl.textContent = 'Payment successful! Txn: ' + AppState.paymentTransactionId;
+      statusEl.className = 'paid';
+      payBtn.disabled = true;
+      syncAppStateToDOM();
+      document.dispatchEvent(new CustomEvent('app:paid', { detail: { ...AppState } }));
+    }, 1200);
+  });
+
+  pmCancel.addEventListener('click', () => {
+    paymentModal.hidden = true;
+    AppState.paymentStatus = 'PENDING';
+    statusEl.textContent = 'Payment cancelled.';
+    statusEl.className = 'error';
+    payBtn.disabled = false;
+    syncAppStateToDOM();
+  });
+
+  // Close modal on backdrop click
+  paymentModal.addEventListener('click', (e) => {
+    if (e.target === paymentModal) pmCancel.click();
+  });
+
+  // ============================================================
+  // FACE PRESETS (existing)
+  // ============================================================
   const FACE_PRESETS = [
     { skin: '#e8b98a', hair: '#2b1d14', eyes: '#2d1a0e', mouth: '#a75c4c' },
     { skin: '#d29662', hair: '#1a1a1a', eyes: '#1c1c1c', mouth: '#b34d58' },
@@ -1016,6 +1355,9 @@
     r.readAsDataURL(f);
   }
 
+  // ============================================================
+  // SIGNATURE CANVAS (existing)
+  // ============================================================
   const sigCanvas = document.getElementById('sig');
   const sigCtx = sigCanvas.getContext('2d');
   const sigImg = document.getElementById('sigImg');
@@ -1100,18 +1442,9 @@
     r.readAsDataURL(f);
   }
 
-  const status = document.getElementById('status');
-  document.getElementById('submitBtn').addEventListener('click', () => {
-    const email = document.getElementById('email').value;
-    const phone = document.getElementById('phone').value;
-    status.textContent = email && phone
-      ? 'Application successfully submitted! Application Ref: GOV/2026/SS/847291'
-      : 'Application submitted with pending details.';
-  });
-  document.getElementById('payBtn').addEventListener('click', () => {
-    status.textContent = 'Payment dialog opened (₹1,000 transfer) — requires human confirmation.';
-  });
-
+  // ============================================================
+  // TASK CHIPS
+  // ============================================================
   document.querySelectorAll('.task-chip').forEach(chip => {
     chip.addEventListener('click', () => {
       navigator.clipboard.writeText(chip.textContent.trim()).catch(() => {});
@@ -1121,9 +1454,13 @@
     });
   });
 
+  // ============================================================
+  // INIT
+  // ============================================================
   setFacePreset('applicantPhoto', 0);
   setFacePreset('guardianPhoto', 2);
   initSignatureCanvas();
+  syncAppStateToDOM();
 </script>
 </body>
 </html>

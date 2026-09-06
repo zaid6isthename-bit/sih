@@ -42,7 +42,7 @@ def test_uitars_snap():
     p = va._parse_uitars(raw, ctx)
     assert p.actions and p.actions[0].type == "click" and p.actions[0].target_id == 1, p
     assert p.reasoning.startswith("click submit"), p
-    print("  ✓ uitars click snaps to element id")
+    print("  [PASS] uitars click snaps to element id")
 
 
 def test_uitars_sensitive_fill_local():
@@ -55,7 +55,7 @@ def test_uitars_sensitive_fill_local():
     a = p.actions[0]
     assert a.type == "fill_local" and a.source == "email" and a.target_id == 7, a
     assert not any(getattr(a, "text", None) for a in p.actions), "literal must be dropped"
-    print("  ✓ sensitive type -> fill_local (literal never survives)")
+    print("  [PASS] sensitive type -> fill_local (literal never survives)")
 
 
 def test_uitars_terminals_and_scroll():
@@ -69,7 +69,7 @@ def test_uitars_terminals_and_scroll():
         assert p.status == want_status, (raw, p)
         if want_first:
             assert p.actions[0].type == want_first and p.actions[0].direction == "down"
-    print("  ✓ finished/call_user/scroll map to protocol statuses")
+    print("  [PASS] finished/call_user/scroll map to protocol statuses")
 
 
 def test_json_profile():
@@ -77,13 +77,13 @@ def test_json_profile():
     raw = '{"reasoning":"advance","actions":[{"type":"click","target_id":3}],"status":"continue","confidence":0.8}'
     p = va._parse_json(raw, ctx)
     assert p.actions[0].target_id == 3 and p.confidence == 0.8
-    print("  ✓ json profile parses")
+    print("  [PASS] json profile parses")
 
 
 def test_profile_detect():
     assert va.profile_for("bytedance/ui-tars-1.5-7b") == "uitars"
     assert va.profile_for("Qwen/Qwen2.5-VL-7B-Instruct") == "json"
-    print("  ✓ profile auto-detect")
+    print("  [PASS] profile auto-detect")
 
 
 def test_http_layer():
@@ -103,7 +103,7 @@ def test_http_layer():
     leak = _ctx([_elem(9, "textbox", "reach me at bob@mail.com please")])
     r = c.post("/plan", json=leak.model_dump())
     assert r.status_code == 422 and r.json()["detail"]["error"] == "residual_pii_detected", r.text
-    print("  ✓ /health, mock /plan, residual-PII tripwire (422)")
+    print("  [PASS] /health, mock /plan, residual-PII tripwire (422)")
 
 
 def test_router_failover_to_mock():
@@ -112,11 +112,12 @@ def test_router_failover_to_mock():
     planner.BACKEND = "vlm"
     try:
         p = planner.plan(_ctx([_elem(1, "button", "Submit", (10, 10, 50, 20))]))
-        assert "[vlm fallback:" in p.reasoning and p.actions, p
+        # Strict Production Rule: NO FALLBACK TO MOCK. Returns real error without fabricated actions.
+        assert "Remote model failure" in p.reasoning and p.status == "need_user" and not p.actions, p
         # cooldown engaged: route now marked unhealthy
         d = rt.describe(backend="vlm")
         assert d["routes"][0]["healthy"] is False, d
-        print("  ✓ dead route fails over to mock + enters cooldown")
+        print("  [PASS] dead route fails closed safely without mock fabrication + enters cooldown")
     finally:
         os.environ.pop("PBA_VLM_ROUTES", None)
         planner.BACKEND = "mock"

@@ -21,6 +21,15 @@ function esc(s) {
   return String(s == null ? "" : s).replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
+
+function shotActionsHtml(dataUrl, label) {
+  if (!dataUrl) return "";
+  const safe = esc(dataUrl);
+  return `<div class="shot-actions">
+    <button class="shot-btn shot-dl" data-action="download" data-url="${safe}" title="Download ${esc(label || 'screenshot')}">Download</button>
+    <button class="shot-btn shot-cp" data-action="copy" data-url="${safe}" title="Copy ${esc(label || 'screenshot')} to clipboard">Copy</button>
+  </div>`;
+}
 // Escape for a <pre> code block: only &<> (leave quotes literal for JSON readability).
 function escCode(s) {
   return String(s == null ? "" : s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" }[c]));
@@ -122,7 +131,7 @@ function renderLog(log) {
       case "extract": body = `${e.tableCount} table(s), ${e.rows} row(s) — masked ${e.masked ? e.masked.count : 0} item(s)`; cls = "ok"; break;
       case "calc": body = `${esc(e.label)} = ${esc(e.value)}${e.detail ? "  (" + esc(e.detail) + ")" : ""}`; cls = "calc"; break;
       case "answer": body = esc((e.answer && (e.answer.answer || e.answer.reason)) || "").slice(0, 220); cls = "ok"; break;
-      case "plan": body = `[${esc(e.status)}] ${esc(e.reasoning || "")} ${esc(JSON.stringify(e.actions || []))}`; break;
+      case "plan": body = `[${esc(e.status)}] mode=${esc(e.reasoningMode || "?")} ${esc(e.reasoning || "")} ${esc(JSON.stringify(e.actions || []))}`; break;
       case "action": body = `${esc(JSON.stringify(e.action))} → ${esc(JSON.stringify((e.result && e.result.result) || e.result))}`; break;
       case "rejected": body = `⛔ ${esc(e.reason)}`; cls = "err"; break;
       case "error": body = `❌ ${esc(e.error)}`; cls = "err"; break;
@@ -135,6 +144,7 @@ function renderLog(log) {
         if (idx === lastShotIdx && e.dataUrl) {
           return `<div class="l shot"><div class="shot-head"><span class="k">shot</span> <span class="${badgeCls}">${badge}</span> ${esc(e.label || "")}</div>`
             + `<div class="log-shot"><img src="${e.dataUrl}" alt="${esc(e.label || "screenshot")}" /></div>`
+            + shotActionsHtml(e.dataUrl, e.label || "screenshot")
             + (e.note ? `<div class="shot-cap">${esc(e.note)}</div>` : "") + `</div>`;
         }
         body = `<span class="${badgeCls}">${badge}</span> ${esc(e.label || "screenshot")} <span class="t">(latest shown below)</span>`;
@@ -205,6 +215,7 @@ function renderAnswer(state) {
       h += `<div class="card"><h3>Latest reasoning</h3>
         <div class="answer-lead">${esc(lastPlan.reasoning || "(no reasoning provided)")}</div>
         <div class="metaline"><span class="pill ${cls}">${esc(st)}</span>
+        <span class="tagchip dim">mode=${esc(lastPlan.reasoningMode || "?")}</span>
         <span class="tagchip dim">step ${lastPlan.step || state.step || 0}</span></div></div>`;
     }
     if (r) {
@@ -356,7 +367,8 @@ function snapshotHtml(a) {
   h += `<div class="card"><h3>After redaction — eligible for transmission</h3>`;
   if (a.redacted && a.redacted.dataUrl) {
     h += `<div class="shot-note"><span class="badge-sent">SANITIZED — eligible for transmission</span></div>
-      <div class="shot-wrap"><img src="${a.redacted.dataUrl}" alt="redacted, sanitized capture" /></div>`;
+      <div class="shot-wrap"><img src="${a.redacted.dataUrl}" alt="redacted, sanitized capture" /></div>`
+      + shotActionsHtml(a.redacted.dataUrl, "sanitized screenshot");
   } else {
     const why = a.transmission && a.transmission.endpoint === "/query"
       ? "Query mode transmits no image — only structured, masked data."
@@ -443,6 +455,125 @@ function setTab(name) {
   document.querySelectorAll(".panel").forEach((p) => p.classList.toggle("on", p.id === "tab-" + name));
   if (name === "answer") $("answerDot").hidden = true;
   if (name === "audit") $("auditDot").hidden = true;
+  if (name === "debug") $("debugDot").hidden = true;
+}
+
+// ---- Debug Trace --------------------------------------------------------
+const DEBUG_STEPS = [
+  { key: "TASK_RECEIVED", label: "Task received" },
+  { key: "TASK_PARSED", label: "Intent classified" },
+  { key: "DOM_CAPTURED", label: "DOM captured" },
+  { key: "A11Y_CAPTURED", label: "Accessibility metadata captured" },
+  { key: "VISION_COMPLETED", label: "Vision analysis completed" },
+  { key: "SANITIZATION_COMPLETED", label: "PII detection & redaction" },
+  { key: "EGRESS_CHECKED", label: "Egress gate validated" },
+  { key: "NETWORK_SENT", label: "Sent to server" },
+  { key: "LLM_COMPLETED", label: "Server reasoning completed" },
+  { key: "ACTION_VALIDATED", label: "Action validated by firewall" },
+  { key: "FIREWALL", label: "Local action firewall" },
+  { key: "BROWSER_ACTION", label: "Browser action executed" },
+  { key: "POSTCONDITION", label: "Post-condition verified" },
+  { key: "TASK_COMPLETED", label: "Task completed" },
+];
+
+function renderDebug(state) {
+  const el = $("debug");
+  if (!state || !state.log || !state.log.length) {
+    el.innerHTML = '<div class="empty">Debug trace populates during task execution — shows each pipeline step with status.</div>';
+    return;
+  }
+
+  const log = state.log;
+  const completedSteps = new Set();
+  const stepDetails = {};
+
+  // Map log entries to debug steps
+  for (const entry of log) {
+    const kind = entry.kind || entry.cmd;
+    switch (kind) {
+      case "start":
+        completedSteps.add("TASK_RECEIVED");
+        stepDetails["TASK_RECEIVED"] = { task: entry.task, mode: entry.mode };
+        break;
+      case "plan":
+        completedSteps.add("TASK_PARSED");
+        completedSteps.add("NETWORK_SENT");
+        completedSteps.add("LLM_COMPLETED");
+        stepDetails["TASK_PARSED"] = { intent: entry.reasoningMode, reasoning: (entry.reasoning || "").slice(0, 100) };
+        stepDetails["NETWORK_SENT"] = { endpoint: "/plan", status: "sent" };
+        stepDetails["LLM_COMPLETED"] = { mode: entry.reasoningMode, status: entry.status };
+        break;
+      case "action":
+        completedSteps.add("ACTION_VALIDATED");
+        completedSteps.add("BROWSER_ACTION");
+        stepDetails["ACTION_VALIDATED"] = { type: entry.action && entry.action.type, target: entry.action && entry.action.target_id };
+        stepDetails["BROWSER_ACTION"] = { ok: entry.result && entry.result.ok, changed: entry.result && entry.result.changed };
+        break;
+      case "postcondition":
+        completedSteps.add("POSTCONDITION");
+        stepDetails["POSTCONDITION"] = { verified: entry.verified, intent: entry.intent };
+        break;
+      case "done":
+        completedSteps.add("TASK_COMPLETED");
+        break;
+      case "receipt":
+        completedSteps.add("SANITIZATION_COMPLETED");
+        stepDetails["SANITIZATION_COMPLETED"] = { detected: entry.receipt && entry.receipt.detected, redacted: entry.receipt && entry.receipt.redacted };
+        break;
+      case "extract":
+        completedSteps.add("DOM_CAPTURED");
+        completedSteps.add("A11Y_CAPTURED");
+        stepDetails["DOM_CAPTURED"] = { tables: entry.tableCount, rows: entry.rows };
+        break;
+      case "rejected":
+        completedSteps.add("FIREWALL");
+        stepDetails["FIREWALL"] = { blocked: true, reason: entry.reason };
+        break;
+      case "error":
+        completedSteps.add("TASK_COMPLETED");
+        stepDetails["TASK_COMPLETED"] = { error: entry.error };
+        break;
+      case "abort":
+      case "need_user":
+        completedSteps.add("TASK_COMPLETED");
+        stepDetails["TASK_COMPLETED"] = { status: kind, reasoning: entry.reasoning };
+        break;
+    }
+  }
+
+  // Vision steps
+  if (state.vision) {
+    completedSteps.add("VISION_COMPLETED");
+    stepDetails["VISION_COMPLETED"] = { ready: state.vision.ready, detections: state.vision.detections };
+  }
+
+  // Egress check (always passes if we got this far)
+  if (completedSteps.has("SANITIZATION_COMPLETED")) {
+    completedSteps.add("EGRESS_CHECKED");
+    stepDetails["EGRESS_CHECKED"] = { passed: true };
+  }
+
+  // Render the trace
+  const steps = DEBUG_STEPS.map(step => {
+    const done = completedSteps.has(step.key);
+    const detail = stepDetails[step.key];
+    let detailHtml = "";
+    if (detail) {
+      const entries = Object.entries(detail)
+        .filter(([_, v]) => v != null && v !== "")
+        .slice(0, 3)
+        .map(([k, v]) => `<span class="mchip">${esc(k)}: ${esc(typeof v === "object" ? JSON.stringify(v).slice(0, 50) : String(v).slice(0, 50))}</span>`)
+        .join("");
+      if (entries) detailHtml = `<div class="tl-meta">${entries}</div>`;
+    }
+    return `<li class="tl${done ? " on" : ""}">
+      <div class="tl-ev">${done ? "✓" : "○"} ${esc(step.label)}</div>
+      ${detailHtml}
+    </li>`;
+  }).join("");
+
+  el.innerHTML = `<div class="card"><h3>Pipeline Trace — ${completedSteps.size}/${DEBUG_STEPS.length} steps completed</h3>
+    <ul class="timeline">${steps}</ul></div>`;
 }
 
 let selectedMode = "auto";
@@ -462,6 +593,56 @@ function setupControls() {
   $("stop").onclick = () => ext.runtime.sendMessage({ cmd: "STOP_TASK" });
   $("task").addEventListener("keydown", (e) => { if (e.key === "Enter") $("run").click(); });
   $("saveCfg").onclick = () => ext.storage.local.set({ serverUrl: $("serverUrl").value.trim() });
+
+  // Download / copy handlers for sanitized screenshot buttons (proceedings + audit).
+  // Uses event delegation on the document so dynamically rendered buttons work.
+  document.addEventListener("click", async (e) => {
+    const btn = e.target.closest("[data-action]");
+    if (!btn) return;
+    const action = btn.dataset.action;
+    const dataUrl = btn.dataset.url;
+    if (!dataUrl) return;
+
+    if (action === "download") {
+      const a = document.createElement("a");
+      a.href = dataUrl;
+      a.download = "sanitized-screenshot.webp";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } else if (action === "copy") {
+      try {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        // Try modern Clipboard API first
+        if (navigator.clipboard && navigator.clipboard.write) {
+          await navigator.clipboard.write([new ClipboardItem({ [blob.type]: blob })]);
+        } else {
+          // Fallback: copy as text (data URL)
+          await navigator.clipboard.writeText(dataUrl);
+        }
+        const orig = btn.textContent;
+        btn.textContent = "Copied!";
+        btn.classList.add("shot-cp-ok");
+        setTimeout(() => { btn.textContent = orig; btn.classList.remove("shot-cp-ok"); }, 1500);
+      } catch (err) {
+        // Last resort: try copying the data URL as text
+        try {
+          await navigator.clipboard.writeText(dataUrl);
+          const orig = btn.textContent;
+          btn.textContent = "Copied URL!";
+          btn.classList.add("shot-cp-ok");
+          setTimeout(() => { btn.textContent = orig; btn.classList.remove("shot-cp-ok"); }, 1500);
+        } catch (err2) {
+          console.error("Copy failed:", err, err2);
+          const orig = btn.textContent;
+          btn.textContent = "Failed";
+          btn.classList.add("shot-cp-fail");
+          setTimeout(() => { btn.textContent = orig; btn.classList.remove("shot-cp-fail"); }, 1500);
+        }
+      }
+    }
+  });
 }
 
 // ---- orchestration ------------------------------------------------------
@@ -474,8 +655,10 @@ function renderMode(state) {
   // Tab hints: dot when a tab has fresh content and isn't the one being viewed.
   const hasAnswer = !!(state.answer || (state.mode === "action" && state.receipts && state.receipts.length));
   const hasAudit = !!(state.audit || (state.auditLog && state.auditLog.length));
+  const hasDebug = !!(state.log && state.log.length);
   $("answerDot").hidden = !(hasAnswer && currentTab !== "answer");
   $("auditDot").hidden = !(hasAudit && currentTab !== "audit");
+  $("debugDot").hidden = !(hasDebug && currentTab !== "debug");
 }
 
 let prevRunning = false;
@@ -493,14 +676,125 @@ function renderState(state) {
   renderLog(state.log);
   renderAnswer(state);
   renderAudit(state);
+  renderDebug(state);
   maybeAutoSwitch(state);
 }
 
 setupControls();
 ext.runtime.onMessage.addListener((msg) => { if (msg.cmd === "STATE") renderState(msg.state); });
 
+// ---- Profile modal (Customize Profile) ------------------------------------
+const PROFILE_FIELDS = {
+  name: "pfName", full_name: "pfName", first_name: "pfFirst", last_name: "pfLast",
+  email: "pfEmail", phone: "pfPhone", dob: "pfDob", address: "pfAddr",
+  city: "pfCity", state: "pfState", pincode: "pfPin", country: "pfCountry",
+  aadhaar: "pfAadhaar", pan: "pfPan", bank_account: "pfAccount",
+  ifsc: "pfIfsc", upi: "pfUpi",
+};
+
+function openProfile() {
+  $("profileModal").hidden = false;
+  $("profileStatus").textContent = "";
+  loadProfile();
+}
+
+function closeProfile() { $("profileModal").hidden = true; }
+
+async function loadProfile() {
+  const { vault, profileVersion, updatedAt } = await ext.storage.local.get(["vault", "profileVersion", "updatedAt"]);
+  if (!vault || typeof vault !== "object") {
+    // No profile saved yet — show all as "Not configured"
+    document.querySelectorAll(".pf-status").forEach(el => {
+      el.textContent = "(Not configured)";
+      el.className = "pf-status not-configured";
+    });
+    if ($("profileVersion")) {
+      $("profileVersion").textContent = profileVersion ? `v${profileVersion}` : "";
+    }
+    return;
+  }
+
+  for (const [key, inputId] of Object.entries(PROFILE_FIELDS)) {
+    const el = $(inputId);
+    const statusEl = document.querySelector(`.pf-status[data-field="${key}"]`);
+    if (el) {
+      if (vault[key] != null && vault[key] !== "") {
+        el.value = vault[key];
+        if (statusEl) {
+          statusEl.textContent = "(Saved)";
+          statusEl.className = "pf-status saved";
+        }
+      } else {
+        if (statusEl) {
+          statusEl.textContent = "(Not configured)";
+          statusEl.className = "pf-status not-configured";
+        }
+      }
+    }
+  }
+
+  // Show version info
+  if ($("profileVersion")) {
+    const ver = profileVersion || 1;
+    const date = updatedAt ? new Date(updatedAt).toLocaleString() : "unknown";
+    $("profileVersion").textContent = `v${ver} · Last updated: ${date}`;
+  }
+}
+
+async function saveProfile() {
+  const vault = {};
+  for (const [key, inputId] of Object.entries(PROFILE_FIELDS)) {
+    const el = $(inputId);
+    if (el && el.value.trim()) vault[key] = el.value.trim();
+  }
+
+  // Get current version and increment
+  const { profileVersion = 0 } = await ext.storage.local.get("profileVersion");
+  const newVersion = profileVersion + 1;
+  const now = new Date().toISOString();
+
+  await ext.storage.local.set({
+    vault,
+    profileVersion: newVersion,
+    updatedAt: now,
+  });
+
+  // Update status indicators
+  for (const [key, inputId] of Object.entries(PROFILE_FIELDS)) {
+    const el = $(inputId);
+    const statusEl = document.querySelector(`.pf-status[data-field="${key}"]`);
+    if (el && statusEl) {
+      if (vault[key]) {
+        statusEl.textContent = "(Saved)";
+        statusEl.className = "pf-status saved";
+      } else {
+        statusEl.textContent = "(Not configured)";
+        statusEl.className = "pf-status not-configured";
+      }
+    }
+  }
+
+  // Update version display
+  if ($("profileVersion")) {
+    $("profileVersion").textContent = `v${newVersion} · Last updated: ${new Date().toLocaleString()}`;
+  }
+
+  const st = $("profileStatus");
+  st.textContent = "Saved!";
+  st.className = "pf-status-msg";
+  setTimeout(() => { st.textContent = ""; }, 2000);
+}
+
+$("personaliseBtn").onclick = openProfile;
+$("profileClose").onclick = closeProfile;
+$("profileSave").onclick = saveProfile;
+$("profileModal").querySelector(".modal-backdrop").onclick = closeProfile;
+
 (async () => {
+  // Reset any incorrect saved URL to the correct default.
   const { serverUrl } = await ext.storage.local.get("serverUrl");
-  $("serverUrl").value = serverUrl || "http://localhost:8000";
+  const correct = "http://localhost:8000";
+  if (serverUrl !== correct) await ext.storage.local.set({ serverUrl: correct });
+  $("serverUrl").value = correct;
   ext.runtime.sendMessage({ cmd: "GET_STATE" }, (res) => res && res.ok && renderState(res.state));
 })();

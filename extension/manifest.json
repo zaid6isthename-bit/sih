@@ -13,12 +13,10 @@
     "storage",
     "unlimitedStorage",
     "offscreen",
-    "sidePanel"
+    "sidePanel",
+    "clipboardWrite"
   ],
 
-  "//unlimitedStorage_note": "Vendored neural weights (models/, see docs/VENDORING.md) exceed the 10 MB chrome.storage default; unlimitedStorage keeps them evict-safe. Weights are packaged in-extension, never fetched at runtime (CSP).",
-
-  "//host_permissions_note": "captureVisibleTab in the multi-step agent loop needs a host permission. activeTab covers only ONE user-invoked action and lapses across the background loop — the symptom is \"activeTab permission is required\" on step 2+, or when the target tab isn't the focused tab. Scoped to web + local-file schemes (not <all_urls>) so it still can't touch chrome:// or the web store. For a zero-standing-permission posture, empty this and request these origins at runtime via optional_host_permissions from the popup's Run click (a user gesture).",
   "host_permissions": ["<all_urls>", "http://*/*", "https://*/*", "file:///*"],
 
   "background": {
@@ -26,7 +24,6 @@
     "type": "module"
   },
 
-  "//action_note": "default_popup was removed so the toolbar click opens the side panel instead (service-worker.js calls sidePanel.setPanelBehavior openPanelOnActionClick). The action block stays — openPanelOnActionClick needs a registered action, and default_title still names the toolbar button. popup/* files remain in the package (reachable directly) but nothing points at them.",
   "action": {
     "default_title": "Privacy Browser Agent"
   },
@@ -49,6 +46,19 @@
         "lib/redactor.js",
         "lib/dom-perception.js",
         "lib/record-extraction.js",
+        "lib/task-parser.js",
+        "lib/goal-manager.js",
+        "lib/world-state.js",
+        "lib/state-sync.js",
+        "lib/element-registry.js",
+        "lib/multimodal-grounding.js",
+        "lib/content-executor.js",
+        "lib/post-condition.js",
+        "lib/recovery-engine.js",
+        "lib/local-secret-handler.js",
+        "lib/privacy/see-gate.js",
+        "lib/privacy/do-gate.js",
+        "lib/privacy/egress-gate.js",
         "content/content.js"
       ],
       "css": ["content/overlay.css"]

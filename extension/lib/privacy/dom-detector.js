@@ -31,7 +31,7 @@
     "family-name": PBA.PII.PERSON,
   };
 
-  const INTERACTABLE = "a[href],button,input,select,textarea,[role='button'],[role='link'],[role='textbox'],[role='checkbox'],[role='menuitem'],[onclick],[tabindex]:not([tabindex='-1'])";
+  const INTERACTABLE = "a[href],button,input,select,textarea,[role='button'],[role='link'],[role='textbox'],[role='checkbox'],[role='menuitem'],[role='option'],.suggestion-item,[onclick],[tabindex]:not([tabindex='-1'])";
 
   function roleOf(el) {
     const explicit = el.getAttribute("role");

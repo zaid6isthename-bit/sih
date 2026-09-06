@@ -1,0 +1,254 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      :root { color-scheme: light; }
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        width: 380px;
+        font: 13px/1.5 'Inter', system-ui, -apple-system, sans-serif;
+        color: #1a1d23;
+        background: #f6f7f9;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      /* Header */
+      header {
+        padding: 16px 18px;
+        background: #fff;
+        border-bottom: 1px solid #e2e5ea;
+      }
+      header h1 {
+        font-size: 14px;
+        font-weight: 700;
+        letter-spacing: -.02em;
+        margin-bottom: 2px;
+      }
+      header p {
+        font-size: 11px;
+        color: #9198a8;
+        line-height: 1.4;
+      }
+
+      .body { padding: 14px 18px; }
+
+      /* Task input */
+      .row { display: flex; gap: 8px; }
+      input, button { font-family: inherit; }
+      #task {
+        flex: 1;
+        padding: 9px 12px;
+        border: 1px solid #e2e5ea;
+        border-radius: 8px;
+        font-size: 13px;
+        background: #fff;
+        color: #1a1d23;
+        outline: none;
+        transition: border-color .15s;
+      }
+      #task:focus { border-color: #2563eb; }
+      #task::placeholder { color: #9198a8; }
+      button {
+        padding: 9px 14px;
+        border: 1px solid transparent;
+        border-radius: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 12px;
+        transition: all .15s;
+      }
+      button:active { transform: translateY(1px); }
+      #run { background: #2563eb; color: #fff; border-color: #2563eb; }
+      #run:hover { background: #1d4ed8; }
+      #stop { background: #fff; border-color: #e2e5ea; color: #5f6577; }
+      #stop:hover { background: #f0f2f5; }
+
+      /* Receipt card */
+      .card {
+        margin-top: 14px;
+        padding: 14px 16px;
+        border-radius: 10px;
+        background: #fff;
+        border: 1px solid #e2e5ea;
+      }
+      .card h3 {
+        margin: 0 0 10px;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: .05em;
+        color: #9198a8;
+      }
+      .stat {
+        display: flex;
+        justify-content: space-between;
+        padding: 3px 0;
+        font-size: 12px;
+      }
+      .stat span { color: #5f6577; }
+      .stat b { font-variant-numeric: tabular-nums; color: #1a1d23; }
+      .pill {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: .02em;
+      }
+      .ok { background: #dcfce7; color: #166534; }
+      .warn { background: #fef9c3; color: #854d0e; }
+      .bad { background: #fee2e2; color: #991b1b; }
+      .cats {
+        margin-top: 8px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+      }
+      .cats span {
+        display: inline-block;
+        padding: 2px 8px;
+        border-radius: 6px;
+        background: #eff4ff;
+        color: #1e40af;
+        font-size: 10px;
+        font-weight: 600;
+      }
+
+      /* Telemetry */
+      .telemetry { margin-top: 10px; }
+      .waterfall {
+        display: flex;
+        gap: 2px;
+        height: 20px;
+        margin: 8px 0 6px;
+        border-radius: 4px;
+        overflow: hidden;
+      }
+      .wf-seg {
+        border-radius: 3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 9px;
+        color: #fff;
+        font-weight: 700;
+      }
+      .wf-cap { background: #3b82f6; }
+      .wf-vis { background: #8b5cf6; }
+      .wf-per { background: #ec4899; }
+      .wf-red { background: #f59e0b; }
+      .wf-srv { background: #10b981; }
+      .legend {
+        display: flex;
+        gap: 8px;
+        font-size: 10px;
+        color: #9198a8;
+      }
+      .legend span { display: flex; align-items: center; gap: 3px; }
+      .legend .dot {
+        width: 6px; height: 6px;
+        border-radius: 2px;
+        display: inline-block;
+      }
+
+      /* Log */
+      #log {
+        margin-top: 12px;
+        max-height: 200px;
+        overflow: auto;
+        font: 11px/1.45 'JetBrains Mono', ui-monospace, monospace;
+        background: #0f1729;
+        color: #cbd5e1;
+        border-radius: 10px;
+        padding: 10px 12px;
+      }
+      #log .l { white-space: pre-wrap; word-break: break-word; padding: 1px 0; }
+      #log .k { color: #7dd3fc; }
+
+      /* Config */
+      .cfg {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #e2e5ea;
+        font-size: 11px;
+        color: #9198a8;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .cfg input {
+        flex: 1;
+        padding: 5px 8px;
+        border: 1px solid #e2e5ea;
+        border-radius: 6px;
+        font-size: 11px;
+        outline: none;
+      }
+      .cfg input:focus { border-color: #2563eb; }
+      .cfg button {
+        padding: 5px 10px;
+        background: #f0f2f5;
+        border: 1px solid #e2e5ea;
+        color: #5f6577;
+        font-size: 11px;
+        border-radius: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Privacy Browser Agent</h1>
+      <p>Only sanitized context leaves this machine.</p>
+    </header>
+    <div class="body">
+      <div class="row">
+        <input id="task" placeholder="e.g. complete and submit my application" />
+        <button id="run">Run</button>
+        <button id="stop">Stop</button>
+      </div>
+
+      <div class="card" id="receiptCard">
+        <h3>Privacy Receipt</h3>
+        <div class="stat"><span>PII detected</span><b id="rDetected">-</b></div>
+        <div class="stat"><span>Redacted</span><b id="rRedacted">-</b></div>
+        <div class="stat"><span>Screenshot sent</span><b id="rShot">-</b></div>
+        <div class="stat"><span>Residual risk</span><b id="rRisk">-</b></div>
+        <div class="stat"><span>Zero-leak streak</span><b id="rStreak" style="color:#16a34a">-</b></div>
+        <div class="cats" id="rCats"></div>
+      </div>
+
+      <div class="card telemetry" id="telemetryCard">
+        <h3>Performance</h3>
+        <div class="stat"><span>Heap</span><b id="tHeap">-</b></div>
+        <div class="stat"><span>Last step</span><b id="tStep">-</b></div>
+        <div class="waterfall" id="waterfall"></div>
+        <div class="legend">
+          <span><span class="dot" style="background:#3b82f6"></span>cap</span>
+          <span><span class="dot" style="background:#8b5cf6"></span>vis</span>
+          <span><span class="dot" style="background:#ec4899"></span>dom</span>
+          <span><span class="dot" style="background:#f59e0b"></span>redact</span>
+          <span><span class="dot" style="background:#10b981"></span>server</span>
+        </div>
+      </div>
+
+      <div class="card telemetry" id="visionCard">
+        <h3>On-device Vision</h3>
+        <div class="stat"><span>Neural stack</span><b id="vNeural">-</b></div>
+        <div class="stat"><span>Models</span><b id="vModels">-</b></div>
+        <div class="stat"><span>Execution</span><b id="vEP">-</b></div>
+        <div class="stat"><span>Warm-up</span><b id="vWarm">-</b></div>
+      </div>
+
+      <div id="log"></div>
+
+      <div class="cfg">
+        <span>Server</span>
+        <input id="serverUrl" placeholder="http://localhost:8000" />
+        <button id="saveCfg">Save</button>
+      </div>
+    </div>
+    <script src="popup.js"></script>
+  </body>
+</html>

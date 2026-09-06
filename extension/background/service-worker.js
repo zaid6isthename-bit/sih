@@ -18,7 +18,11 @@ const DEFAULTS = { serverUrl: "http://localhost:8000", maxSteps: 25, loopLimit: 
 // QUERY payload — it reuses the CANONICAL scanner (no duplicate detection logic).
 // The IIFE attaches globalThis.PBA.pii.scan; it is self-contained (ships its own
 // PII-enum fallback, touches no DOM), so it is safe in a module service worker.
+import "../lib/protocol.js";
 import "../lib/privacy/pii-regex.js";
+import "../lib/task-parser.js";
+import "../lib/privacy/egress-gate.js";
+import "../lib/browser-controller.js";
 
 const state = {
   running: false, tabId: null, sessionId: null, step: 0, log: [], receipts: [],
@@ -83,6 +87,7 @@ const FORBIDDEN_FROM_EGRESS = [
   "the original (unredacted) screenshot",
   "raw account / card / password / OTP / API-key values",
   "raw page text or unsanitized DOM",
+  "raw user task text containing PII",
 ];
 
 // Display-safe copy of an outgoing payload: any screenshot dataURL is swapped for a
@@ -95,6 +100,21 @@ function auditPayloadPreview(payload) {
     clone.screenshot = `[redacted image omitted from preview — ${clone.screenshot.length} chars]`;
   }
   return clone;
+}
+
+// ---- Task Privacy Boundary (P0) ----------------------------------------
+// The raw user task MUST NEVER cross the network. This function parses the
+// raw task locally, extracts any embedded PII values, and produces a
+// REMOTE-SAFE task text that contains only semantic intent — no raw PII.
+// The raw task stays in the service worker for local vault resolution.
+function sanitizeTaskForNetwork(rawTask) {
+  if (!rawTask || !(globalThis.PBA && globalThis.PBA.taskParser)) {
+    // Fallback: if parser isn't loaded, strip anything that looks like PII
+    return rawTask ? rawTask.replace(/\d{10,}/g, "<REDACTED>").replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, "<REDACTED>") : "";
+  }
+  const parsed = globalThis.PBA.taskParser.parseTask(rawTask);
+  const safe = globalThis.PBA.taskParser.remoteSafeContext(parsed);
+  return safe.safeText;
 }
 
 // ---- offscreen document lifecycle (needed for canvas + WebGPU inference) ----
@@ -190,6 +210,19 @@ const CONTENT_SCRIPTS = [
   "lib/redactor.js",
   "lib/dom-perception.js",
   "lib/record-extraction.js",
+  "lib/task-parser.js",
+  "lib/goal-manager.js",
+  "lib/world-state.js",
+  "lib/state-sync.js",
+  "lib/element-registry.js",
+  "lib/multimodal-grounding.js",
+  "lib/content-executor.js",
+  "lib/post-condition.js",
+  "lib/recovery-engine.js",
+  "lib/local-secret-handler.js",
+  "lib/privacy/see-gate.js",
+  "lib/privacy/do-gate.js",
+  "lib/privacy/egress-gate.js",
   "content/content.js",
 ];
 
@@ -231,6 +264,23 @@ async function ensureContentScript(tabId) {
 }
 
 async function callServer(serverUrl, payload, path = "/plan") {
+  // CLIENT-SIDE EGRESS GATE: scan the full outbound payload for raw PII.
+  // This is defense-in-depth — the task should already be sanitized, and the
+  // screenshot should already be redacted, but we verify everything before it
+  // crosses the network boundary.
+  if (globalThis.PBA && globalThis.PBA.egressGate) {
+    const egressResult = globalThis.PBA.egressGate.validatePayload(payload);
+    if (!egressResult.valid) {
+      throw new Error(`egress_blocked: ${egressResult.reason} detected in outbound payload — refused to send`);
+    }
+  } else if (globalThis.PBA && globalThis.PBA.pii) {
+    const taskField = payload.task || payload.query || "";
+    const leak = scanRaw(taskField, false);
+    if (leak) {
+      throw new Error(`egress_blocked: raw ${leak} detected in task/query field — refused to send`);
+    }
+  }
+
   const res = await fetch(serverUrl.replace(/\/$/, "") + path, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -280,6 +330,14 @@ async function runTask(task, tabId) {
       const t0 = performance.now();
       const phases = {};
 
+      // Ensure content script is alive (self-heals across navigation, reloads, and tab switches)
+      const csLive = await ensureContentScript(tabId);
+      if (!csLive.ok) {
+        pushLog({ kind: "error", error: csLive.reason });
+        state.running = false;
+        break;
+      }
+
       // 1. CAPTURE (raw — stays in the worker/offscreen, never sent)
       let t = performance.now();
       const rawShot = await captureScreenshot(tabId);
@@ -307,13 +365,33 @@ async function runTask(task, tabId) {
       state.vision = visionState(vision);
 
       // 3. PERCEIVE + PROTECT (in-page; produces sanitized payload + redaction plan)
+      // Load user profile keys so the server knows which fields can be auto-filled.
+      const { vault: profileVault } = await ext.storage.local.get("vault").catch(() => ({}));
+      const profileKeys = (profileVault && typeof profileVault === "object") ? Object.keys(profileVault) : [];
       t = performance.now();
       const perceived = await sendToTab(tabId, {
         cmd: "PERCEIVE", task, sessionId: state.sessionId, step: state.step,
         visionDetections: vision.detections || [], visionReady: !!vision.ready,
+        profileKeys,
       });
       if (!perceived || !perceived.ok) throw new Error("perceive_failed");
       const payload = perceived.payload;
+      // PRIVACY BOUNDARY: Replace raw task with sanitized version for network.
+      // The raw `task` variable stays in this closure for local vault resolution
+      // but MUST NOT appear in any payload sent to the server.
+      payload.task = sanitizeTaskForNetwork(task);
+      // Tell the server which profile keys are available for fill_local actions.
+      // The server never sees the values — only the key names.
+      payload.profile_keys = profileKeys;
+      // Pass structured task intent (no raw PII — only semantic metadata).
+      // The server uses this for intent-aware planning.
+      if (lastParsedTask) {
+        payload.task_intent = lastParsedTask.intent;
+        payload.task_operations = lastParsedTask.requiredOperations;
+        payload.task_profile_requirements = lastParsedTask.profileRequirements;
+        payload.task_confidence = lastParsedTask.confidence;
+        payload.task_object = lastParsedTask.object;
+      }
       phases.perceive = Math.round(performance.now() - t);
       pushLog({ kind: "receipt", step: state.step, receipt: payload.privacy_receipt });
       state.receipts.push(payload.privacy_receipt);
@@ -385,6 +463,12 @@ async function runTask(task, tabId) {
       }
 
       // 5. REASON (server sees only sanitized payload)
+      // Send list of already-executed action signatures so the planner skips them.
+      // recentSignatures format: "type|id|text|option|source|changed" — strip the trailing changed bit.
+      payload.executed_actions = recentSignatures.map((s) => {
+        const parts = s.split("|");
+        return parts.slice(0, -1).join("|");
+      });
       t = performance.now();
       pushAudit("server_request", { step: state.step, endpoint: "/plan", screenshot: shotSent });
       const plan = await callServer(cfg.serverUrl, payload);
@@ -396,21 +480,87 @@ async function runTask(task, tabId) {
         const mem = performance.memory ? (performance.memory.usedJSHeapSize / 1048576).toFixed(1) : 0;
         state.telemetry.resources = { heapMB: mem, lastStepMs: phases.total };
       } catch (_) {}
-      pushAudit("server_response", { step: state.step, endpoint: "/plan", status: plan.status, actions: (plan.actions || []).length });
-      pushLog({ kind: "plan", step: state.step, status: plan.status, reasoning: plan.reasoning, actions: plan.actions, phases });
+      pushAudit("server_response", { step: state.step, endpoint: "/plan", status: plan.status, reasoningMode: plan.reasoningMode || "UNKNOWN", actions: (plan.actions || []).length });
+      pushLog({ kind: "plan", step: state.step, status: plan.status, reasoningMode: plan.reasoningMode || "UNKNOWN", reasoning: plan.reasoning, actions: plan.actions, phases });
 
       if (plan.status === "done") { pushLog({ kind: "done" }); break; }
       if (plan.status === "abort" || plan.status === "need_user") { pushLog({ kind: plan.status, reasoning: plan.reasoning }); break; }
 
-      // 6. ACT (validated + verified in the content script)
+      // 6. ACT (validated + verified locally: privileged in SW, DOM in content script)
       for (const action of plan.actions || []) {
-        const result = await sendToTab(tabId, { cmd: "EXECUTE", action });
+        let result = null;
+        const actionType = (action && action.type ? String(action.type) : "").toLowerCase();
+        const privilegedActions = new Set(["navigate", "back", "forward", "reload", "new_tab", "close_tab", "switch_tab", "download"]);
+
+        if (privilegedActions.has(actionType) && globalThis.PBA && globalThis.PBA.browserController) {
+          try {
+            switch (actionType) {
+              case "navigate":
+                result = await globalThis.PBA.browserController.navigate(tabId, action.url);
+                break;
+              case "back":
+                result = await globalThis.PBA.browserController.goBack(tabId);
+                break;
+              case "forward":
+                result = await globalThis.PBA.browserController.goForward(tabId);
+                break;
+              case "reload":
+                result = await globalThis.PBA.browserController.reload(tabId);
+                break;
+              case "new_tab":
+                result = await globalThis.PBA.browserController.openNewTab(action.url);
+                if (result && result.tabId) {
+                  state.tabId = result.tabId;
+                  tabId = result.tabId;
+                }
+                break;
+              case "close_tab":
+                result = await globalThis.PBA.browserController.closeTab(tabId);
+                break;
+              case "switch_tab":
+                result = await globalThis.PBA.browserController.switchTab(action.tab_id || tabId);
+                if (action.tab_id) {
+                  state.tabId = action.tab_id;
+                  tabId = action.tab_id;
+                }
+                break;
+              case "download":
+                result = await globalThis.PBA.browserController.triggerDownload(action.url, action.file_path);
+                break;
+            }
+            result = { ok: result && result.success, changed: true, signature: actionType + "|" + (action.url || "") };
+          } catch (err) {
+            result = { ok: false, error: String(err && err.message || err), rejected: "privileged_execution_failed" };
+          }
+        } else {
+          result = await sendToTab(tabId, { cmd: "EXECUTE", action });
+        }
+
         pushLog({ kind: "action", step: state.step, action, result });
         pushAudit("local_action", { step: state.step, type: action.type,
           targetId: action.target_id ?? null, ok: !!(result && result.ok),
           changed: !!(result && result.changed), rejected: (result && result.rejected) || null });
 
         if (result && result.rejected) { pushLog({ kind: "rejected", reason: result.rejected }); }
+
+        // Post-condition verification after each action
+        if (result && result.ok && lastParsedTask) {
+          const postCondition = await sendToTab(tabId, {
+            cmd: "VERIFY_POSTCONDITION",
+            taskIntent: lastParsedTask.intent,
+            action,
+          }).catch(() => null);
+
+          if (postCondition && postCondition.verified) {
+            pushLog({ kind: "postcondition", step: state.step, verified: true,
+              intent: lastParsedTask.intent, detail: postCondition });
+            pushAudit("postcondition_verified", { step: state.step, intent: lastParsedTask.intent,
+              before: postCondition.before, after: postCondition.after });
+          } else if (postCondition) {
+            pushLog({ kind: "postcondition", step: state.step, verified: false,
+              reason: postCondition.reason, intent: lastParsedTask.intent });
+          }
+        }
 
         // loop detection: identical signature repeated with no state change
         if (result && result.signature) {
@@ -439,20 +589,39 @@ async function runTask(task, tabId) {
 // server-backed agent loop). The side panel's mode toggle overrides this; only
 // "auto"/absent falls back here.
 //
-// Tie-break is deliberately safe: an explicit action verb wins for action, and a
-// task matching NEITHER set defaults to query — read-only is the conservative
-// choice (nothing leaves the machine, nothing on the page changes).
+// Uses the new task parser's structured intent classification when available,
+// falls back to the legacy regex classifier.
 const QUERY_RE = /\b(summar\w*|totals?|sum|averages?|avg|mean|how much|how many|counts?|breakdown|group(?:ed)? by|spending|spent|list|show me|min|minimum|max|maximum|highest|lowest|largest|smallest)\b/i;
 const ACTION_RE = /\b(go to|open|click|fill|type|enter|submit|pay|transfer|buy|order|book|log ?in|sign ?in|search for|apply|checkout|add to cart|delete|remove|send|upload|download|navigate)\b/i;
 
+// Intent-to-mode mapping for the new structured intents
+const ACTION_INTENTS = new Set(["PAY_FEE", "SUBMIT_FORM", "FORM_FILL", "SUBMIT", "NAVIGATE", "CLICK", "PURCHASE", "SCROLL"]);
+const QUERY_INTENTS = new Set(["PAGE_SUMMARY", "QUERY"]);
+
 function classifyIntent(task) {
   const t = String(task || "").trim();
+
+  // Try the new structured parser first
+  if (globalThis.PBA && globalThis.PBA.taskParser) {
+    const parsed = globalThis.PBA.taskParser.parseTask(t);
+    if (parsed.intent && parsed.intent !== "UNKNOWN") {
+      // Store the parsed task for later use (service worker scope)
+      lastParsedTask = parsed;
+      if (QUERY_INTENTS.has(parsed.intent)) return "query";
+      if (ACTION_INTENTS.has(parsed.intent)) return "action";
+    }
+  }
+
+  // Legacy fallback
   const action = ACTION_RE.test(t);
-  const query = QUERY_RE.test(t) || /\?$/.test(t); // a trailing "?" reads as a question
-  if (action) return "action";       // an action verb present → action (even if "list"/"show" also appears)
+  const query = QUERY_RE.test(t) || /\?$/.test(t);
+  if (action) return "action";
   if (query) return "query";
-  return "query";                    // pure-ambiguous → read-only default
+  return "query";
 }
+
+// Store the last parsed task for use in runTask/runQuery
+let lastParsedTask = null;
 
 // ---- SW-side fail-closed validation (query payload) ---------------------
 // Belt-and-suspenders before any /query POST: re-scan the OUTGOING payload with the
@@ -623,10 +792,11 @@ async function runQuery(task, tabId) {
     //    browser: user query + masked/typed tables + safe metadata + (below, only after
     //    the fail-closed check) a REDACTED raster whose sensitive pixels are already
     //    blacked out. No raw DOM, no raw page text, and never the original screenshot.
+    //    PRIVACY BOUNDARY: The raw `task` is sanitized — no PII values cross the network.
     const payload = {
       protocol_version: "1.0",
       session_id: state.sessionId,
-      query: task,
+      query: sanitizeTaskForNetwork(task),
       url_origin: urlOrigin,
       viewport,
       tables,
@@ -640,6 +810,8 @@ async function runQuery(task, tabId) {
         residual_risk: "mitigated_masked", send_screenshot: false,
         fail_closed_triggered: false, categories: masked.categories || {},
       },
+      // Pass structured task intent (no raw PII — only semantic metadata)
+      task_intent: lastParsedTask ? lastParsedTask.intent : null,
     };
 
     // 4) FAIL-CLOSED pre-flight: assert no raw identifier survived into the payload.

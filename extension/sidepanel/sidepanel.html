@@ -15,7 +15,9 @@
         <h1>Privacy Browser Agent</h1>
         <span id="modeChip" class="chip idle" title="Resolved task mode">idle</span>
       </div>
-      <p class="tag">Only sanitized context leaves this machine.</p>
+      <div class="top-right">
+        <button id="personaliseBtn" class="person-btn" title="Save your details for auto-fill">Personalise</button>
+      </div>
     </header>
 
     <div class="controls">
@@ -58,6 +60,7 @@
         <button type="button" data-tab="proc" class="on" role="tab">Proceedings</button>
         <button type="button" data-tab="answer" role="tab">Answer <span id="answerDot" class="dot" hidden></span></button>
         <button type="button" data-tab="audit" role="tab">Privacy Audit <span id="auditDot" class="dot" hidden></span></button>
+        <button type="button" data-tab="debug" role="tab">Debug Trace <span id="debugDot" class="dot" hidden></span></button>
       </nav>
     </div>
 
@@ -73,6 +76,10 @@
       <section id="tab-audit" class="panel" role="tabpanel">
         <div id="audit"><div class="empty">The privacy audit populates once a task runs.</div></div>
       </section>
+
+      <section id="tab-debug" class="panel" role="tabpanel">
+        <div id="debug"><div class="empty">Debug trace populates during task execution — shows each pipeline step with status.</div></div>
+      </section>
     </main>
 
     <footer class="cfg">
@@ -80,6 +87,113 @@
       <input id="serverUrl" placeholder="http://localhost:8000" autocomplete="off" />
       <button id="saveCfg">Save</button>
     </footer>
+
+    <div id="profileModal" class="modal" hidden>
+      <div class="modal-backdrop"></div>
+      <div class="modal-card">
+        <div class="modal-head">
+          <h2>Customize Profile</h2>
+          <button id="profileClose" class="modal-x">&times;</button>
+        </div>
+        <div class="modal-sub">Saved on-device only. Used to auto-fill forms when you ask. <span id="profileVersion" class="tagchip dim"></span></div>
+        <div class="modal-body">
+          <div class="pf-grid">
+            <!-- Personal Information -->
+            <div class="pf-section">
+              <h3 class="pf-section-header">Personal Information</h3>
+            </div>
+            <div class="pf">
+              <label>Full Name <span class="pf-status" data-field="full_name"></span></label>
+              <input id="pfName" placeholder="Aarav Kumar" data-key="full_name" data-sensitivity="HIGH" />
+            </div>
+            <div class="pf">
+              <label>First Name <span class="pf-status" data-field="first_name"></span></label>
+              <input id="pfFirst" placeholder="Aarav" data-key="first_name" data-sensitivity="MEDIUM" />
+            </div>
+            <div class="pf">
+              <label>Last Name <span class="pf-status" data-field="last_name"></span></label>
+              <input id="pfLast" placeholder="Kumar" data-key="last_name" data-sensitivity="MEDIUM" />
+            </div>
+            <div class="pf">
+              <label>Date of Birth <span class="pf-status" data-field="dob"></span></label>
+              <input id="pfDob" type="date" data-key="dob" data-sensitivity="HIGH" />
+            </div>
+
+            <!-- Contact Information -->
+            <div class="pf-section">
+              <h3 class="pf-section-header">Contact Information</h3>
+            </div>
+            <div class="pf">
+              <label>Email <span class="pf-status" data-field="email"></span></label>
+              <input id="pfEmail" type="email" placeholder="aarav@example.com" data-key="email" data-sensitivity="HIGH" />
+            </div>
+            <div class="pf">
+              <label>Phone <span class="pf-status" data-field="phone"></span></label>
+              <input id="pfPhone" type="tel" placeholder="9876543210" data-key="phone" data-sensitivity="HIGH" />
+            </div>
+
+            <!-- Address -->
+            <div class="pf-section">
+              <h3 class="pf-section-header">Address</h3>
+            </div>
+            <div class="pf full">
+              <label>Address <span class="pf-status" data-field="address"></span></label>
+              <textarea id="pfAddr" rows="2" placeholder="123 MG Road, Bengaluru, KA 560001" data-key="address" data-sensitivity="MEDIUM"></textarea>
+            </div>
+            <div class="pf">
+              <label>City <span class="pf-status" data-field="city"></span></label>
+              <input id="pfCity" placeholder="Bengaluru" data-key="city" data-sensitivity="LOW" />
+            </div>
+            <div class="pf">
+              <label>State <span class="pf-status" data-field="state"></span></label>
+              <input id="pfState" placeholder="Karnataka" data-key="state" data-sensitivity="LOW" />
+            </div>
+            <div class="pf">
+              <label>PIN Code <span class="pf-status" data-field="pincode"></span></label>
+              <input id="pfPin" placeholder="560001" data-key="pincode" data-sensitivity="LOW" />
+            </div>
+            <div class="pf">
+              <label>Country <span class="pf-status" data-field="country"></span></label>
+              <input id="pfCountry" placeholder="India" data-key="country" data-sensitivity="LOW" />
+            </div>
+
+            <!-- Identity -->
+            <div class="pf-section">
+              <h3 class="pf-section-header">Identity</h3>
+            </div>
+            <div class="pf">
+              <label>Aadhaar Number <span class="pf-status" data-field="aadhaar"></span></label>
+              <input id="pfAadhaar" placeholder="123456789012" data-key="aadhaar" data-sensitivity="CRITICAL" />
+            </div>
+            <div class="pf">
+              <label>PAN <span class="pf-status" data-field="pan"></span></label>
+              <input id="pfPan" placeholder="ABCDE1234F" style="text-transform:uppercase;" data-key="pan" data-sensitivity="CRITICAL" />
+            </div>
+
+            <!-- Payment Information -->
+            <div class="pf-section">
+              <h3 class="pf-section-header">Payment Information</h3>
+            </div>
+            <div class="pf">
+              <label>Bank Account <span class="pf-status" data-field="bank_account"></span></label>
+              <input id="pfAccount" placeholder="123456789012" data-key="bank_account" data-sensitivity="CRITICAL" />
+            </div>
+            <div class="pf">
+              <label>IFSC Code <span class="pf-status" data-field="ifsc"></span></label>
+              <input id="pfIfsc" placeholder="ABCD0123456" style="text-transform:uppercase;" data-key="ifsc" data-sensitivity="HIGH" />
+            </div>
+            <div class="pf">
+              <label>UPI VPA <span class="pf-status" data-field="upi"></span></label>
+              <input id="pfUpi" placeholder="name@bank" data-key="upi" data-sensitivity="HIGH" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-foot">
+          <button id="profileSave" class="pf-save">Save Profile</button>
+          <span id="profileStatus" class="pf-status-msg"></span>
+        </div>
+      </div>
+    </div>
 
     <script src="sidepanel.js"></script>
   </body>

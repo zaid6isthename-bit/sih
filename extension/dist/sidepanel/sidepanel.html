@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Browser Agent — Side Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="sidepanel.css" />
+  </head>
+  <body>
+    <header class="top">
+      <div class="brand">
+        <h1>Privacy Browser Agent</h1>
+        <span id="modeChip" class="chip idle" title="Resolved task mode">idle</span>
+      </div>
+      <p class="tag">Only sanitized context leaves this machine.</p>
+    </header>
+
+    <div class="controls">
+      <input id="task" placeholder="e.g. summarize my spending by transaction type" autocomplete="off" />
+      <div class="seg" id="modeToggle" role="group" aria-label="Task mode">
+        <button type="button" data-mode="auto" class="on">Auto</button>
+        <button type="button" data-mode="query">Summarize</button>
+        <button type="button" data-mode="action">Act</button>
+      </div>
+      <div class="run-row">
+        <button id="run" class="primary">Run</button>
+        <button id="stop">Stop</button>
+      </div>
+    </div>
+
+    <div class="sticky-top">
+      <section id="visionBar" class="vision">
+        <div class="vhead">
+          <h3>On-device runtime</h3>
+          <span id="vRuntime" class="chip mut">-</span>
+        </div>
+        <div class="vgrid">
+          <div class="vcell"><label>Neural stack</label><b id="vNeural">-</b></div>
+          <div class="vcell"><label>Execution</label><b id="vEP">-</b></div>
+          <div class="vcell"><label>Models</label><b id="vModels">-</b></div>
+          <div class="vcell"><label>Warm-up</label><b id="vWarm">-</b></div>
+          <div class="vcell"><label>Detections</label><b id="vDet">-</b></div>
+          <div class="vcell"><label>Last vision</label><b id="vLast">-</b></div>
+        </div>
+        <div id="vAdapter" class="adapter" hidden></div>
+        <div id="vPerModelWrap" class="permodel-wrap" hidden>
+          <table id="vPerModel" class="permodel">
+            <thead><tr><th>Model</th><th>EP</th><th>ms</th><th>#</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <nav class="tabs" id="tabs" role="tablist">
+        <button type="button" data-tab="proc" class="on" role="tab">Proceedings</button>
+        <button type="button" data-tab="answer" role="tab">Answer <span id="answerDot" class="dot" hidden></span></button>
+        <button type="button" data-tab="audit" role="tab">Privacy Audit <span id="auditDot" class="dot" hidden></span></button>
+      </nav>
+    </div>
+
+    <main>
+      <section id="tab-proc" class="panel on" role="tabpanel">
+        <div id="log" class="log"><div class="empty">Run a task to stream its proceedings here.</div></div>
+      </section>
+
+      <section id="tab-answer" class="panel" role="tabpanel">
+        <div id="answer"><div class="empty">No result yet. Ask a question (Summarize) or run an action (Act).</div></div>
+      </section>
+
+      <section id="tab-audit" class="panel" role="tabpanel">
+        <div id="audit"><div class="empty">The privacy audit populates once a task runs.</div></div>
+      </section>
+    </main>
+
+    <footer class="cfg">
+      <span>Server</span>
+      <input id="serverUrl" placeholder="http://localhost:8000" autocomplete="off" />
+      <button id="saveCfg">Save</button>
+    </footer>
+
+    <script src="sidepanel.js"></script>
+  </body>
+</html>

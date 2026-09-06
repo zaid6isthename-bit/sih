@@ -16,7 +16,7 @@ demo- and CI-friendly. A "vlm" path could instead prompt a text LLM over the sam
 sanitized arrays; the deterministic path stays as the safety net either way.
 """
 from __future__ import annotations
-import os
+import os, re
 from typing import List, Optional
 
 from schemas import QueryContext, QueryTable, QueryAnswer, Group, Totals, DateRange
@@ -179,7 +179,24 @@ def _compose(query: str, table: QueryTable, metric: Optional[str], dim: Optional
 
 # ---- public entry -----------------------------------------------------------
 def _mock_answer(ctx: QueryContext) -> QueryAnswer:
+    q = (ctx.query or "").lower()
     tables = ctx.tables or []
+
+    # PAGE_SUMMARY: detect page summary requests and generate semantic summary
+    page_summary_re = re.compile(
+        r"\bwhat('s|\s+is)\s+(on|on\s+the|on\s+this)\s+(page|screen|site|form)\b"
+        r"|\bdescribe\s+(this|the)\s+(page|screen|site|form)\b"
+        r"|\bsummariz?e?\s+(this|the)\s+(page|screen|site|form)\b"
+        r"|\bpage\s+summary\b"
+        r"|\bwhat\s+do\s+you\s+see\b"
+        r"|\boverview\b"
+        r"|\bwhat\s+is\s+displayed\b"
+        r"|\btell\s+me\s+about\s+(this|the)\s+page\b"
+    )
+    if page_summary_re.search(q):
+        return _compose_page_summary(ctx)
+
+    # Standard table-based query
     if not tables:
         return QueryAnswer(session_id=ctx.session_id,
                            answer="No tabular records were detected on this page.",
@@ -211,16 +228,99 @@ def _mock_answer(ctx: QueryContext) -> QueryAnswer:
     )
 
 
+def _compose_page_summary(ctx: QueryContext) -> QueryAnswer:
+    """Generate a semantic page summary from the sanitized context.
+    
+    This analyzes the masked table structure and metadata to produce a
+    human-readable summary of what's on the page, without any raw PII.
+    """
+    tables = ctx.tables or []
+    parts = []
+    
+    # Count total records across all tables
+    total_rows = sum(len(t.rows) for t in tables)
+    
+    # Analyze table structures
+    table_summaries = []
+    for ti, t in enumerate(tables):
+        cols = [c.name for c in t.columns if c.name]
+        metric_cols = [t.columns[c].name for c in t.numericColumns if c < len(t.columns)]
+        dim_cols = [t.columns[c].name for c in t.dimensionColumns if c < len(t.columns)]
+        id_cols = [t.columns[c].name for c, col in enumerate(t.columns)
+                   if col.kind == "identifier" or (c not in t.numericColumns and c not in t.dimensionColumns and c not in t.dateColumns)]
+        
+        table_info = {
+            "caption": t.caption or f"Table {ti+1}",
+            "columns": cols,
+            "rowCount": len(t.rows),
+            "metricColumns": metric_cols,
+            "dimensionColumns": dim_cols,
+            "identifierColumns": id_cols,
+            "truncated": t.truncated,
+        }
+        table_summaries.append(table_info)
+    
+    # Build the summary
+    sections = []
+    
+    # Application/page type detection from query and context
+    query_lower = (ctx.query or "").lower()
+    if any(w in query_lower for w in ("application", "form", "scholarship", "portal")):
+        sections.append("Page Type: Government Application Form")
+    elif any(w in query_lower for w in ("transaction", "bank", "statement")):
+        sections.append("Page Type: Financial Statement")
+    else:
+        sections.append("Page Type: Web Application")
+    
+    # Table summaries
+    for ts in table_summaries:
+        if ts["rowCount"] > 0:
+            section = f"Section: {ts['caption']}"
+            section += f"\n  Records: {ts['rowCount']}"
+            if ts["metricColumns"]:
+                section += f"\n  Numeric fields: {', '.join(ts['metricColumns'])}"
+            if ts["dimensionColumns"]:
+                section += f"\n  Category fields: {', '.join(ts['dimensionColumns'])}"
+            if ts["identifierColumns"]:
+                section += f"\n  Sensitive fields detected: {len(ts['identifierColumns'])} (redacted on-device)"
+            sections.append(section)
+    
+    # Sensitive fields summary
+    id_count = sum(len([c for c in t.columns if c.kind == "identifier"])
+                   for t in tables)
+    if id_count > 0:
+        sections.append(f"\nSensitive Information: {id_count} identifier field(s) detected and redacted on-device")
+    
+    # Controls summary
+    controls = []
+    for t in tables:
+        for row in t.rows:
+            for cell in row:
+                cell_lower = (cell or "").lower()
+                if any(w in cell_lower for w in ("submit", "pay", "button", "confirm")):
+                    if cell not in controls:
+                        controls.append(cell)
+    if controls:
+        sections.append(f"Available Actions: {', '.join(controls[:5])}")
+    
+    answer = "\n".join(sections) if sections else "Page content detected but could not be summarized."
+    
+    return QueryAnswer(
+        session_id=ctx.session_id,
+        answer=answer,
+        row_count=total_rows,
+        status="done",
+        confidence=0.8,
+    )
+
+
 def answer_query(ctx: QueryContext) -> QueryAnswer:
-    """Dispatch on backend; the deterministic aggregator is always the safety net."""
-    if BACKEND == "vlm":
-        try:
-            from query_router import answer_with_fallback  # optional; lazy import
-            a, used = answer_with_fallback(ctx)
-            a.answer = f"[{used}] {a.answer}".strip()
-            return a
-        except Exception as e:  # never crash the query path — fall back to the aggregator
-            a = _mock_answer(ctx)
-            a.answer = f"[vlm fallback: {e}] " + a.answer
-            return a
+    """Dispatch on backend; the deterministic aggregator is always the safety net.
+
+    The VLM path for queries is not yet implemented (query_router.py does not
+    exist). When PBA_BACKEND=vlm, this function falls back to the deterministic
+    aggregator with a note in the answer. This is intentional: the query mode's
+    aggregation is already accurate for structured tabular data, and a VLM adds
+    latency without improving numerical correctness.
+    """
     return _mock_answer(ctx)

@@ -24,11 +24,37 @@ PII_TYPES = {
     "signature", "id_document", "ip", "generic_secret",
 }
 VALUE_STATES = {"empty", "filled", "redacted"}
+
 ActionType = Literal[
-    "click", "type", "fill_local", "select", "scroll", "scroll_to",
-    "navigate", "wait", "done", "need_user", "abort",
+    # Navigation
+    "navigate", "back", "forward", "reload",
+    # Tabs
+    "new_tab", "close_tab", "switch_tab",
+    # Mouse & Pointer
+    "click", "double_click", "right_click", "hover", "focus",
+    # Keyboard & Text
+    "type", "clear", "press_key", "key_combination",
+    # Scrolling
+    "scroll", "scroll_up", "scroll_down", "scroll_to", "scroll_to_element", "scroll_container",
+    # Form Controls
+    "select", "select_option", "check", "uncheck", "toggle", "submit_form",
+    # Drag & Drop
+    "drag", "drop",
+    # Files & Clipboard
+    "upload_file", "download", "copy", "paste",
+    # Timing & Sync
+    "wait", "wait_for_element", "wait_for_navigation", "wait_for_idle",
+    # Menus & Dialogs
+    "open_menu", "close_menu", "handle_dialog",
+    # Local Vault & Profile
+    "fill_local", "local_profile_action", "local_secret_action",
+    # Flow & Control
+    "no_action_required", "done", "need_user", "abort",
 ]
-Status = Literal["continue", "done", "need_user", "abort"]
+
+Status = Literal["continue", "done", "need_user", "abort", "blocked", "paused"]
+RiskLevel = Literal["LOW", "MEDIUM", "HIGH", "CRITICAL"]
+Reversibility = Literal["REVERSIBLE", "PARTIALLY_REVERSIBLE", "IRREVERSIBLE"]
 
 
 # --- inbound ------------------------------------------------------------------
@@ -42,6 +68,8 @@ class Element(BaseModel):
     sensitive: bool = False
     pii_type: Optional[str] = None
     destructive: bool = False
+    stable_id: Optional[str] = None
+    selector: Optional[str] = None
 
     @field_validator("value_state")
     @classmethod
@@ -94,6 +122,18 @@ class SanitizedContext(BaseModel):
     elements: List[Element] = []
     redactions: List[Redaction] = []
     privacy_receipt: Optional[PrivacyReceipt] = None
+    executed_actions: List[str] = []  # action signatures already executed (e.g. "click|11")
+    profile_keys: List[str] = []  # vault keys available for fill_local (e.g. ["email", "phone"])
+    # Structured task intent (from client-side task parser, no raw PII)
+    task_intent: Optional[str] = None        # e.g. "PAY_FEE", "PAGE_SUMMARY", "SUBMIT_FORM"
+    task_operations: List[str] = []          # e.g. ["LOCATE_FEE_SECTION", "CLICK"]
+    task_profile_requirements: List[str] = [] # e.g. ["payment_method", "upi"]
+    task_confidence: Optional[float] = None
+    task_object: Optional[str] = None        # e.g. "application_fee", "application", "page"
+    # Objective context from GoalManager
+    current_objective: Optional[str] = None
+    completed_objectives: List[str] = []
+    page_semantic_summary: Optional[str] = None
 
     @field_validator("url_origin")
     @classmethod
@@ -105,17 +145,38 @@ class SanitizedContext(BaseModel):
 
 
 # --- outbound -----------------------------------------------------------------
+class ExpectedEffect(BaseModel):
+    type: str = "STATE_CHANGE"
+    description: str = ""
+    expected_url: Optional[str] = None
+    expected_element: Optional[str] = None
+    expected_value: Optional[str] = None
+
+
 class Action(BaseModel):
     type: ActionType
+    action_id: Optional[str] = None
     target_id: Optional[int] = None
+    stable_target_id: Optional[str] = None
     text: Optional[str] = None          # literal, non-sensitive only
     source: Optional[str] = None        # vault key for fill_local (value resolved on client)
+    field_name: Optional[str] = None    # for local_profile_action / local_secret_action
     option: Optional[str] = None
     amount: Optional[int] = None
     direction: Optional[Literal["up", "down"]] = None
     url: Optional[str] = None
+    tab_id: Optional[int] = None
+    key: Optional[str] = None
+    keys: Optional[List[str]] = None
+    file_path: Optional[str] = None
     ms: Optional[int] = None
+    dialog_action: Optional[Literal["accept", "dismiss", "prompt"]] = None
+    dialog_text: Optional[str] = None
     requires_confirmation: bool = False
+    risk: RiskLevel = "LOW"
+    reversibility: Reversibility = "REVERSIBLE"
+    reason: Optional[str] = None
+    expected_effect: Optional[ExpectedEffect] = None
 
 
 class ActionPlan(BaseModel):
@@ -126,6 +187,8 @@ class ActionPlan(BaseModel):
     actions: List[Action] = []
     status: Status = "continue"
     confidence: float = 0.5
+    reasoningMode: str = "UNKNOWN"  # REMOTE_LLM | FALLBACK | UNKNOWN
+    current_objective: Optional[str] = None
 
 
 # --- QUERY path (read-only summarization over sanitized records) --------------
@@ -175,6 +238,8 @@ class QueryContext(BaseModel):
     tables: List[QueryTable] = []
     masked: MaskedSummary = MaskedSummary()
     privacy_receipt: Optional[PrivacyReceipt] = None
+    # Structured task intent (from client-side task parser)
+    task_intent: Optional[str] = None
 
     @field_validator("url_origin")
     @classmethod
